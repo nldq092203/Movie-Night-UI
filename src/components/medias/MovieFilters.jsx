@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { debounce } from 'lodash';
+import { apiBaseUrl } from '../../config';
 
 function Filters({ filters, setFilters, ordering, setOrdering }) {
   const [genreOptions, setGenreOptions] = useState([]);
@@ -13,7 +14,7 @@ function Filters({ filters, setFilters, ordering, setOrdering }) {
   useEffect(() => {
     const fetchGenres = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/v1/genres/');
+        const response = await axios.get(`${apiBaseUrl}/api/v1/genres/`);
         setGenreOptions(response.data.results);
       } catch (err) {
         console.error('Failed to fetch genres.');
@@ -79,7 +80,7 @@ function Filters({ filters, setFilters, ordering, setOrdering }) {
               key={genre.id}
               onClick={() => handleGenreClick(genre.name)}
               className={`flex items-center justify-center px-4 py-2 border rounded-full text-sm 
-                ${filters.genres.includes(genre.name) ? 'bg-black text-white' : 'border-gray-300 text-white'}`}
+                ${filters.genres.includes(genre.name) ? 'bg-white text-black' : 'border-gray-300 text-white'}`}
             >
               {genre.name}
             </button>

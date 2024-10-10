@@ -1,5 +1,5 @@
 import React from 'react';
-import Filters from './MovieFilters';
+import Filters from '../medias/MovieFilters';
 import { useDisclosure } from '@mantine/hooks';
 import { Drawer, Button } from '@mantine/core';
 import { IconAdjustmentsHorizontal } from '@tabler/icons-react';
@@ -12,7 +12,7 @@ function FilterDrawer({ filters, setFilters, ordering, setOrdering }) {
       {/* Filter Button at the top-left */}
       <Button
         onClick={open}
-        className="fixed top-4 left-4 z-20 p-2 px-4 border border-gray-700 rounded-lg bg-white text-black hover:bg-gray-100"
+        className="border border-gray-700 rounded-lg bg-white text-black hover:bg-gray-100"
         variant="filled"
       >
         <span className="flex items-center">
@@ -28,7 +28,7 @@ function FilterDrawer({ filters, setFilters, ordering, setOrdering }) {
         opened={opened}
         onClose={close}
         size="md"
-        position="left"
+        position="right"
         withCloseButton={false}
         padding={0}
         styles={{

@@ -1,17 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BellIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
-import { useMovieNightContext } from '../context/MovieNightContext';
+import { useMovieNightContext } from '../../context/MovieNightContext';
 
 function NotificationDropdown() {
   const [open, setOpen] = useState(false);
   const { saveInvitationData } = useMovieNightContext(); 
   const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [unseenCount, setunseenCount] = useState(0);
   const [error, setError] = useState(null);
   const [filterType, setFilterType] = useState('ALL'); 
   const [isReadFilter, setIsReadFilter] = useState('ALL'); 
   const navigate = useNavigate();
+  const dropdownRef = useRef(null); 
 
   const POLLING_INTERVAL = 30000;
 
@@ -40,7 +41,8 @@ function NotificationDropdown() {
 
       const data = await response.json();
       setNotifications(data.results || []);
-      setUnreadCount(data.unreadCount || 0);
+      setunseenCount(data.unseenCount || 0);
+      console.log(data.unseenCount)
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
       setError('Failed to fetch notifications.');
@@ -60,7 +62,7 @@ function NotificationDropdown() {
       });
       if (response.ok) {
         // Reset the unread count
-        setUnreadCount(0);
+        setunseenCount(0);
       } else {
         throw new Error('Failed to mark all notifications as seen');
       }
@@ -68,7 +70,25 @@ function NotificationDropdown() {
       console.error(error);
     }
   };
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target) &&
+        !event.target.closest('.notification-button')
+      ) {
+        setOpen(false);
+      }
+    };
 
+    // Add event listener
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      // Remove event listener on cleanup
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
   useEffect(() => {
     fetchNotifications();
 
@@ -142,25 +162,25 @@ function NotificationDropdown() {
   };
 
   return (
-    <div className="fixed bottom-5 right-5 z-50">
+    <div className="z-50">
       <div className="relative">
         <button
           onClick={toggleDropdown}
-          className="bg-blue-600 text-white rounded-full p-3 shadow-lg hover:bg-blue-700 focus:outline-none"
+          className="notification-button bg-blue-600 text-white rounded-full p-3 shadow-lg hover:bg-blue-700 focus:outline-none"
         >
           <BellIcon className="h-6 w-6" />
-          {unreadCount > 0 && (
+          {unseenCount > 0 && (
             <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
-              {unreadCount}
+              {unseenCount}
             </span>
           )}
         </button>
 
         {open && (
-          <div className="absolute right-0 bottom-full mb-4 w-96 bg-black text-white rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 max-h-96 overflow-y-auto transition-transform transform">
+          <div ref={dropdownRef} className="absolute right-0 top-full mt-4 w-96 bg-black text-white rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 max-h-96 overflow-y-auto transition-transform transform">
+            {/* Notifications Dropdown Content */}
             <div className="py-2">
               <h2 className="text-xl font-bold px-4 mb-2">Notifications</h2>
-
               <div className="px-4 flex space-x-2 mb-2">
                 <select
                   className="bg-gray-800 text-white px-2 py-1 rounded"
@@ -184,7 +204,6 @@ function NotificationDropdown() {
                   <option value="RES">Responses</option>
                 </select>
               </div>
-
               <div className="divide-y divide-gray-600">
                 <div className="px-4 py-2">
                   <h3 className="text-lg font-semibold mb-2">This day</h3>

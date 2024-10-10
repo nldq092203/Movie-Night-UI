@@ -2,24 +2,24 @@ import React, { useEffect, useState } from 'react';
 import { differenceInSeconds } from 'date-fns';
 
 function Clock({ startTime }) {
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [timeLeft, setTimeLeft] = useState('');
 
   useEffect(() => {
     const intervalId = setInterval(() => {
-      setCurrentTime(new Date());
+      const now = new Date();
 
       // Calculate time left
       if (startTime) {
-        const now = new Date();
         const startDate = new Date(startTime);
         const secondsLeft = differenceInSeconds(startDate, now);
 
         if (secondsLeft > 0) {
-          const hours = Math.floor(secondsLeft / 3600);
+          const days = Math.floor(secondsLeft / (3600 * 24));
+          const hours = Math.floor((secondsLeft % (3600 * 24)) / 3600);
           const minutes = Math.floor((secondsLeft % 3600) / 60);
           const seconds = secondsLeft % 60;
-          setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+
+          setTimeLeft(`${days}d ${hours}h ${minutes}m ${seconds}s`);
         } else {
           setTimeLeft('The event has started!');
         }
@@ -29,12 +29,11 @@ function Clock({ startTime }) {
     return () => clearInterval(intervalId);
   }, [startTime]);
 
-  // Function to format the time in HH:MM:SS
-  const formatTime = (date) => {
+  // Function to format the time in HH:MM
+  const formatTimeWithoutSeconds = (date) => {
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    return `${hours}:${minutes}:${seconds}`;
+    return `${hours}:${minutes}`;
   };
 
   // Function to format the date
@@ -50,17 +49,21 @@ function Clock({ startTime }) {
 
   return (
     <div className="flex flex-col items-center text-white">
-      {/* Current Time */}
-      <div className="flex space-x-2 text-6xl font-bold mb-4">
-        {formatTime(currentTime).split(':').map((num, index) => (
-          <div key={index} className="bg-gray-800 p-4 rounded-md shadow-lg">
-            {num}
+      {/* Display Start Time */}
+      {startTime && (
+        <>
+          <div className="text-xl mb-2">{formatDate(new Date(startTime))}</div>
+          <div className="flex space-x-2 text-6xl font-bold mb-4">
+            {formatTimeWithoutSeconds(new Date(startTime)).split(':').map((num, index) => (
+              <div key={index} className="bg-gray-800 p-4 rounded-md shadow-lg">
+                {num}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-      <div className="text-xl font-light">{formatDate(currentTime)}</div>
-
-      {/* Countdown (if startTime is provided) */}
+        </>
+      )}
+      
+      {/* Countdown */}
       {startTime && (
         <div className="mt-4 text-2xl">
           <strong>Countdown:</strong> {timeLeft}

@@ -1,9 +1,9 @@
 import { useContext, useState } from 'react';
-import { AuthContext } from '../context/AuthContext';
+import { AuthContext } from '../../context/AuthContext';
 import { GoogleLogin } from '@react-oauth/google';
+import { apiBaseUrl } from '../../config';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import UserDropdown from '../components/UserDropDown'; // Import UserDropdown
 
 function Login() {
   const { loginUser, googleLogin } = useContext(AuthContext); // Include googleLogin
@@ -41,7 +41,7 @@ function Login() {
       setError(null); // Clear previous errors
 
       // Send the Google ID token to the backend
-      const res = await axios.post('http://localhost:8000/auth/google/', {
+      const res = await axios.post(`${apiBaseUrl}/auth/google/`, {
         id_token: response.credential,
       });
 
@@ -69,11 +69,6 @@ function Login() {
 
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-gray-100 relative">
-      {/* UserDropdown at the top-right corner */}
-      <div className="absolute top-4 right-4">
-        <UserDropdown />
-      </div>
-
       <form
         onSubmit={handleSubmit}
         className="bg-white p-8 rounded-lg shadow-md max-w-md w-full"
