@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { apiBaseUrl } from '../config';
 
 export const AuthContext = createContext();
 
@@ -31,7 +32,7 @@ export const AuthProvider = ({ children }) => {
   // Login function - stores tokens and user data
   const loginUser = async (credentials) => {
     try {
-      const response = await axios.post('http://localhost:8000/auth/token/', credentials);
+      const response = await axios.post(`${apiBaseUrl}/auth/token/`, credentials);
       const { access, refresh } = response.data;
       setAccessToken(access);
       setRefreshToken(refresh);
@@ -66,7 +67,7 @@ export const AuthProvider = ({ children }) => {
   // Function to refresh access token
   const refreshAccessToken = async () => {
     try {
-      const response = await axios.post('http://localhost:8000/auth/token/refresh/', {
+      const response = await axios.post(`${apiBaseUrl}/auth/token/refresh/`, {
         refresh: refreshToken,
       });
       const newAccessToken = response.data.access;

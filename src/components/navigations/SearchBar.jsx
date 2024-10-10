@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { IconSearch, IconX } from '@tabler/icons-react';
 import { rem } from '@mantine/core';
 
@@ -6,14 +6,29 @@ function SearchBar({ onSearch }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const wrapperRef = useRef(null);
 
-  // Retrieve search terms from localStorage
+  // Retrieve search terms from localStorage on mount
   useEffect(() => {
     const storedTerms = JSON.parse(localStorage.getItem('searchTerms')) || [];
     setSuggestions(storedTerms);
   }, []);
 
-  // Update suggestions as the user types
+  // Detect clicks outside the component to close suggestions
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Update suggestions as the user types, without triggering a search
   const handleInputChange = (e) => {
     const query = e.target.value;
     setSearchTerm(query);
@@ -26,16 +41,17 @@ function SearchBar({ onSearch }) {
     setSuggestions(filteredSuggestions);
   };
 
-  // Handle search submission
+  // Handle search submission when Enter is pressed or search icon is clicked
   const handleSubmit = (e) => {
     e.preventDefault();
     if (searchTerm.trim()) {
       onSearch(searchTerm.trim());
 
-      // Save the new term to localStorage
+      // Save the new term to localStorage with a limit of 10 terms
       const storedTerms = JSON.parse(localStorage.getItem('searchTerms')) || [];
-      if (!storedTerms.includes(searchTerm.trim().toLowerCase())) {
-        const updatedTerms = [searchTerm.trim().toLowerCase(), ...storedTerms];
+      const newTerm = searchTerm.trim().toLowerCase();
+      if (!storedTerms.includes(newTerm)) {
+        const updatedTerms = [newTerm, ...storedTerms.slice(0, 9)];
         localStorage.setItem('searchTerms', JSON.stringify(updatedTerms));
       }
 
@@ -45,10 +61,9 @@ function SearchBar({ onSearch }) {
     }
   };
 
-  // Handle suggestion click
+  // Handle suggestion click, only update the input field
   const handleSuggestionClick = (term) => {
     setSearchTerm(term);
-    onSearch(term);
     setShowSuggestions(false); // Hide suggestions after clicking
   };
 
@@ -57,30 +72,28 @@ function SearchBar({ onSearch }) {
     setShowSuggestions(true);
   };
 
-  // Hide suggestions when clicking outside
-  const handleBlur = () => {
-    setTimeout(() => setShowSuggestions(false), 100); // Delay to allow click on suggestion
-  };
-
   // Clear search input
   const handleClear = () => {
     setSearchTerm('');
     setSuggestions([]);
+    setShowSuggestions(false);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="relative w-80">
+    <form onSubmit={handleSubmit} className="relative w-80" ref={wrapperRef}>
       <div className="relative">
-        {/* Search Icon */}
-        <span className="absolute inset-y-0 left-3 flex items-center">
-          <IconSearch style={{ width: rem(16), height: rem(16) }} stroke={1.5} className="text-gray-400" />
-        </span>
+        {/* Search Icon as Submit Button */}
+        <button
+          type="submit"
+          className="absolute inset-y-0 left-3 flex items-center text-gray-400"
+        >
+          <IconSearch style={{ width: rem(16), height: rem(16) }} stroke={1.5} />
+        </button>
         <input
           type="text"
           value={searchTerm}
           onChange={handleInputChange}
           onFocus={handleFocus}
-          onBlur={handleBlur}
           placeholder="Search"
           className="w-full pl-10 pr-10 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:border-gray-500"
         />
@@ -94,11 +107,13 @@ function SearchBar({ onSearch }) {
           </span>
         )}
         {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute w-full mt-1 bg-gray-900 text-white rounded-lg shadow-lg max-h-40 overflow-y-auto border border-gray-700">
+          <div
+            className="absolute w-full mt-1 bg-gray-900 text-white rounded-lg shadow-lg max-h-40 overflow-y-auto border border-gray-700 z-50" // Add z-50
+          >
             {suggestions.map((term, index) => (
               <div
                 key={index}
-                onClick={() => handleSuggestionClick(term)}
+                onMouseDown={() => handleSuggestionClick(term)}
                 className="p-2 cursor-pointer hover:bg-gray-700"
               >
                 {term}

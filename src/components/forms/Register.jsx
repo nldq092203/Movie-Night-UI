@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { apiBaseUrl } from '../../config';
 import { useNavigate } from 'react-router-dom';  // Import useNavigate
-import UserDropdown from '../components/UserDropDown'; // Import UserDropdown
+import UserDropdown from '../navigations/UserDropDown'; // Import UserDropdown
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -68,7 +69,7 @@ function Register() {
 
       // Send the registration request to the server
       const response = await axios.post(
-        'http://localhost:8000/auth/users/',
+        `${apiBaseUrl}/auth/users/`,
         formData,
         {
           headers: {

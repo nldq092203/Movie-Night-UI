@@ -1,10 +1,10 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Login from './components/Login';
-import Register from './components/Register';
-import MovieDetails from './components/MovieDetails';
-import MovieSearch from './components/MovieSearch';
-import HomePage from './components/HomePage';
-import MovieNightDetails from './components/MovieNightDetails';
+import Login from './components/forms/Login';
+import Register from './components/forms/Register';
+import MovieDetails from './components/layouts/MovieDetails';
+import MovieSearch from './components/layouts/MovieSearch';
+import HomePage from './components/layouts/HomePage';
+import MovieNightDetails from './components/layouts/MovieNightDetails';
 import '@mantine/core/styles.css';
 import { MantineProvider } from '@mantine/core';
 

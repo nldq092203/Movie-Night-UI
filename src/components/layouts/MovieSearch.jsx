@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import MovieCard from './MovieCard';  // Assuming you already have this component
-import Filters from './MovieFilters';  // Assuming you already have the Filters component
+import { apiBaseUrl } from '../../config';
+import MovieCard from '../medias/MovieCard';  // Assuming you already have this component
 import { useLocation } from 'react-router-dom'; // To read query parameters
-import UserDropdown from './UserDropDown'; // Import the UserDropdown component
+import Header from '../navigations/Header';
 
 function MovieSearch() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -12,7 +12,6 @@ function MovieSearch() {
   const [error, setError] = useState(null);
   const [nextPage, setNextPage] = useState(null);  // To handle next page in pagination
   const [prevPage, setPrevPage] = useState(null);  // To handle previous page in pagination
-  const [isFilterOpen, setIsFilterOpen] = useState(false); // Filter dropdown visibility
 
   // Get the search term from the URL query parameters
   const location = useLocation();
@@ -44,7 +43,7 @@ function MovieSearch() {
 
     try {
       // Perform the search request
-      const response = await axios.post('http://localhost:8000/api/v1/movies/search/', {
+      const response = await axios.post(`${apiBaseUrl}/api/v1/movies/search/`, {
         term: term,
       });
 
@@ -104,53 +103,7 @@ function MovieSearch() {
 
   return (
     <div className="min-h-screen bg-black text-white relative">
-      {/* Sticky Header (Search Bar, Filter Button, and User Dropdown) */}
-      <div className="sticky top-0 z-10 bg-gray-900 shadow-lg p-4 flex justify-between items-center">
-        <div className="flex space-x-4">
-          <h1 className="text-2xl font-bold">Movie Night</h1>
-          {/* Search Bar */}
-          <form onSubmit={handleSubmit} className="flex space-x-2">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search movies"
-              className="p-2 bg-gray-700 text-white rounded-l-md w-64"
-              required
-            />
-            <button
-              type="submit"
-              className="bg-blue-500 text-white px-4 py-2 rounded-r-md"
-              disabled={loading}
-            >
-              {loading ? 'Searching...' : 'Search'}
-            </button>
-          </form>
-        </div>
-
-        {/* User Dropdown */}
-        <UserDropdown />
-      </div>
-
-      {/* Filter Button
-      <button
-        className="text-white p-2 rounded-full bg-gray-700 hover:bg-gray-600"
-        onClick={() => setIsFilterOpen(!isFilterOpen)}
-      >
-        <span className="flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 012 0v2a1 1 0 01-2 0V4zm3 0a1 1 0 011 1v1a1 1 0 01-1 1H4V4h2zm1 3h12v2H7V7zm5 4v8a1 1 0 001 1h1a1 1 0 001-1v-8a1 1 0 00-1-1h-1a1 1 0 00-1 1zM6 12h1a1 1 0 011 1v8a1 1 0 01-1 1H7a1 1 0 01-1-1v-8a1 1 0 011-1zM12 12h1a1 1 0 011 1v8a1 1 0 01-1 1h-1a1 1 0 01-1-1v-8a1 1 0 011-1z" />
-          </svg>
-        </span>
-      </button>
-    
-      Filter Dropdown
-      {isFilterOpen && (
-        <div className="fixed top-16 right-4 z-20 bg-gray-800 w-64 p-4 rounded-md shadow-lg">
-          <Filters filters={filters} setFilters={setFilters} ordering={ordering} setOrdering={setOrdering} />
-        </div>
-      )} */}
-
+      <Header />
       {/* Search Results */}
       <div className="container mx-auto px-4 py-10">
         <h2 className="text-3xl font-bold mb-5">Search Results</h2>
