@@ -3,7 +3,7 @@ import { Paper, Group, ScrollArea } from '@mantine/core';
 import { IconFlame, IconSwords, IconHeart, IconRobot, IconGhost, IconStar, IconMoonStars } from '@tabler/icons-react';
 import axios from 'axios';
 
-const GenreSection = ({ apiBaseUrl, filters, setFilters }) => {
+const GenreSection = ({ apiBaseUrl, filters, setFilters, theme }) => {
   const [genreOptions, setGenreOptions] = useState([]);
 
   // Fetch genres from the API
@@ -39,8 +39,10 @@ const GenreSection = ({ apiBaseUrl, filters, setFilters }) => {
     Drakor: <IconMoonStars size={24} />,
   };
 
+  const isDarkMode = theme.colorScheme === 'dark';
+
   return (
-    <ScrollArea type="auto" scrollbarSize={6} className="w-full mb-10">
+    <ScrollArea type="auto" scrollbarSize={6} className="w-full mb-10 scrollbar-transparent">
       <Group spacing="md" className="flex-nowrap flex-row overflow-x-auto">
         {genreOptions.map((genre) => {
           const isSelected = filters.genres.includes(genre.name);
@@ -50,17 +52,24 @@ const GenreSection = ({ apiBaseUrl, filters, setFilters }) => {
               radius="lg"
               shadow="md"
               className={`flex items-center justify-center p-3 w-[200px] h-[80px] rounded-lg border m-6 transition-all duration-300 transform hover:scale-105 ${
-                isSelected ? 'bg-blue-500 text-white' : 'bg-white bg-opacity-20 text-white'
+                isSelected ? 'text-white' : ''
               }`}
               style={{
                 borderColor: isSelected ? 'blue' : 'gray',
-                backgroundColor: isSelected ? 'rgba(0, 123, 255, 0.7)' : 'rgba(255, 255, 255, 0.15)',
+                backgroundColor: isSelected
+                  ? isDarkMode
+                    ? 'rgba(0, 123, 255, 0.7)' // Dark mode selected color
+                    : '#A1C4FD'               // Light mode selected color
+                  : isDarkMode
+                  ? 'rgba(255, 255, 255, 0.15)'  // Dark mode unselected color
+                  : 'transparent',                   // Light mode unselected color
+                color: isDarkMode ? 'white' : 'black',
                 backdropFilter: 'blur(12px)',
               }}
               onClick={() => handleGenreClick(genre.name)}
             >
               <Group direction="column" align="center" spacing="xs">
-                <div className={isSelected ? 'text-white' : 'text-white'}>
+                <div>
                   {icons[genre.name] || <IconStar size={24} />}
                 </div>
                 <span className="text-sm">{genre.name}</span>

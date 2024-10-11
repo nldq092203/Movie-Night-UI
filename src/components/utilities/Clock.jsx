@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { differenceInSeconds } from 'date-fns';
 
-function Clock({ startTime }) {
+function Clock({ startTime, theme }) {
   const [timeLeft, setTimeLeft] = useState('');
 
   useEffect(() => {
@@ -48,14 +48,19 @@ function Clock({ startTime }) {
   };
 
   return (
-    <div className="flex flex-col items-center text-white">
+    <div className={`flex flex-col mb-10 items-center ${theme.colorScheme === 'dark' ? 'text-white' : 'text-black'}`}>
       {/* Display Start Time */}
       {startTime && (
         <>
           <div className="text-xl mb-2">{formatDate(new Date(startTime))}</div>
           <div className="flex space-x-2 text-6xl font-bold mb-4">
             {formatTimeWithoutSeconds(new Date(startTime)).split(':').map((num, index) => (
-              <div key={index} className="bg-gray-800 p-4 rounded-md shadow-lg">
+              <div
+                key={index}
+                className={`p-4 rounded-md shadow-lg ${
+                  theme.colorScheme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'
+                }`}
+              >
                 {num}
               </div>
             ))}

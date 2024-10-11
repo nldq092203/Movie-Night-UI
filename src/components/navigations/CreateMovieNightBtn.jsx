@@ -4,7 +4,7 @@ import { apiBaseUrl } from '../../config';
 import { Button, Modal, TextInput, Select, Divider, Paper, Center, ActionIcon } from '@mantine/core';
 import { IconPlus, IconChevronDown, IconX } from '@tabler/icons-react';
 
-function CreateMovieNightBtn({ movieId }) {
+function CreateMovieNightBtn({ movieId, theme }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [startTime, setStartTime] = useState('');
@@ -13,6 +13,8 @@ function CreateMovieNightBtn({ movieId }) {
   const [error, setError] = useState(null);
   const [movieNights, setMovieNights] = useState([]);
   const dropdownRef = useRef(null);
+
+  const isDarkMode = theme.colorScheme === 'dark';
 
   const fetchMovieNights = async () => {
     try {
@@ -91,22 +93,22 @@ function CreateMovieNightBtn({ movieId }) {
       <div className="flex items-center">
         <Button
           onClick={() => setIsFormOpen(true)}
-          color="yellow"
+          color={isDarkMode ? 'yellow' : 'blue'}
           radius="md"
           style={{ borderRadius: '0.5rem 0 0 0.5rem' }}
-          leftSection={<IconPlus className='text-black'/>} // Using leftSection instead of leftIcon
-          styles={{ label: { color: 'black' } }}
+          leftSection={<IconPlus className={isDarkMode ? 'text-black' : 'text-white'} />}
+          styles={{ label: { color: isDarkMode ? 'black' : 'white' } }}
         >
           Create Movie Night
         </Button>
 
         <Button
           onClick={toggleDropdown}
-          color="yellow"
+          color={isDarkMode ? 'yellow' : 'blue'}
           radius="md"
           style={{ borderRadius: '0 0.5rem 0.5rem 0' }}
         >
-          <IconChevronDown className="text-black" />
+          <IconChevronDown className={isDarkMode ? 'text-black' : 'text-white'} />
         </Button>
       </div>
 
@@ -119,34 +121,41 @@ function CreateMovieNightBtn({ movieId }) {
         radius="md"
         withCloseButton={false}
         styles={{
-          modal: { backgroundColor: '#000', border: 'none'}, 
-          body: { backgroundColor: '#1f1f1f' } 
+          modal: {
+            backgroundColor: theme.colorScheme === 'dark' ? '#000' : '#fff',
+            border: 'none',
+            color: theme.colorScheme === 'dark' ? '#fff' : '#000',
+          },
+          body: {
+            backgroundColor: theme.colorScheme === 'dark' ? '#1f1f1f' : '#f0f0f0',
+            color: theme.colorScheme === 'dark' ? '#e0e0e0' : '#333',
+          }
         }}
       >
           <ActionIcon
             onClick={() => setIsDropdownOpen(false)}
             style={{ position: 'absolute', top: 10, right: 10}}
           >
-            <IconX size={20} className="bg-black"/>
+            <IconX size={20} className={isDarkMode ? 'text-white' : 'text-black'}/>
           </ActionIcon>
 
-          <div style={{ backgroundColor: '#000', padding: '1rem', borderTopLeftRadius: '0.5rem', borderTopRightRadius: '0.5rem' }}>
-            <h3 className="font-bold text-white">Your Movie Nights</h3>
+          <div style={{ backgroundColor: isDarkMode ? '#000' : '#f0f0f0', padding: '1rem' }}>
+            <h3 className={`font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>Your Movie Nights</h3>
           </div>
 
-          <div style={{ backgroundColor: '#1a1a1a', padding: '1rem', borderBottomLeftRadius: '0.5rem', borderBottomRightRadius: '0.5rem' }}>
+          <div style={{ backgroundColor: isDarkMode ? '#1a1a1a' : '#ffffff', padding: '1rem' }}>
             {error && <p className="text-red-500 mb-4">{error}</p>}
             {movieNights.length > 0 ? (
               <ul className="space-y-2">
                 {movieNights.map((night) => (
-                  <li key={night.id} className="flex justify-between items-center text-white">
+                  <li key={night.id} className={`flex justify-between items-center ${isDarkMode ? 'text-white' : 'text-black'}`}>
                     <span>{new Date(night.start_time).toLocaleString()}</span>
-                    <a href={`/movie-nights/${night.id}`} className="text-blue-500 underline hover:text-blue-700">View</a>
+                    <a href={`/movie-nights/${night.id}`} className={`${isDarkMode ? 'text-blue-500' : 'text-blue-800'} underline hover:text-blue-700`}>View</a>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-white">No movie nights found for this movie.</p>
+              <p className={`${isDarkMode ? 'text-white' : 'text-black'}`}>No movie nights found for this movie.</p>
             )}
           </div>
       </Modal>
@@ -157,9 +166,9 @@ function CreateMovieNightBtn({ movieId }) {
         title="Create Movie Night"
         centered
         styles={{
-          modal: { backgroundColor: '#000', border: 'none' }, 
-          header: { color: '#ffff', backgroundColor: '#000'}, // Title color
-          body: { backgroundColor: '#1f1f1f', color: '#e0e0e0' } // Body text color
+          modal: { backgroundColor: isDarkMode ? '#000' : '#fff', border: 'none' }, 
+          header: { color: isDarkMode ? '#ffff' : '#333', backgroundColor: isDarkMode ? '#000' : '#fff'}, 
+          body: { backgroundColor: isDarkMode ? '#1f1f1f' : '#f9f9f9', color: isDarkMode ? '#e0e0e0' : '#333' } 
         }}
       >
         {error && <p className="text-red-500 mb-4">{error}</p>}
@@ -171,8 +180,8 @@ function CreateMovieNightBtn({ movieId }) {
             onChange={(e) => setStartTime(e.target.value)}
             required
             styles={{
-              input: { backgroundColor: '#333', color: '#e0e0e0', borderColor: '#444' },
-              label: { color: '#ffffff' }
+              input: { backgroundColor: isDarkMode ? '#333' : '#e0e0e0', color: isDarkMode ? '#e0e0e0' : '#333', borderColor: isDarkMode ? '#444' : '#ddd' },
+              label: { color: isDarkMode ? '#ffffff' : '#333' }
             }}
           />
           <Select
@@ -191,17 +200,17 @@ function CreateMovieNightBtn({ movieId }) {
               { value: 'PT24H', label: '24 hours before' },
             ]}
             styles={{
-              input: { backgroundColor: '#333', color: '#e0e0e0', borderColor: '#444' },
-              dropdown: { backgroundColor: '#1a1a1a', color: '#e0e0e0' },
-              label: { color: '#ffffff' }
+              input: { backgroundColor: isDarkMode ? '#333' : '#e0e0e0', color: isDarkMode ? '#e0e0e0' : '#333', borderColor: isDarkMode ? '#444' : '#ddd' },
+              dropdown: { backgroundColor: isDarkMode ? '#1a1a1a' : '#ffffff', color: isDarkMode ? '#e0e0e0' : '#333' },
+              label: { color: isDarkMode ? '#ffffff' : '#333' }
             }}
           />
-          <Divider my="sm" color="#444" />
+          <Divider my="sm" color={isDarkMode ? '#444' : '#ddd'} />
           <div className="flex justify-end space-x-2">
-            <Button type="submit" color="dark" styles={{ root: { backgroundColor: '#444', color: '#ffffff' } }}>
+            <Button type="submit" color="dark" styles={{ root: { backgroundColor: isDarkMode ? '#444' : '#ddd', color: isDarkMode ? '#ffffff' : '#333' } }}>
               Create
             </Button>
-            <Button color="dark" onClick={() => setIsFormOpen(false)} styles={{ root: { backgroundColor: '#666', color: '#ffffff' } }}>
+            <Button color="dark" onClick={() => setIsFormOpen(false)} styles={{ root: { backgroundColor: isDarkMode ? '#666' : '#ccc', color: isDarkMode ? '#ffffff' : '#333' } }}>
               Cancel
             </Button>
           </div>

@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { BellIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { useMovieNightContext } from '../../context/MovieNightContext';
+import { apiBaseUrl } from '../../config';
 
-function NotificationDropdown() {
+function NotificationDropdown({ theme }) {
   const [open, setOpen] = useState(false);
   const { saveInvitationData } = useMovieNightContext(); 
   const [notifications, setNotifications] = useState([]);
@@ -21,6 +22,7 @@ function NotificationDropdown() {
       const accessToken = localStorage.getItem('access_token');
 
       let filterParams = '';
+
       if (isReadFilter !== 'ALL') {
         filterParams += `&is_read=${isReadFilter === 'READ'}`;
       }
@@ -28,32 +30,30 @@ function NotificationDropdown() {
         filterParams += `&notification_type=${filterType}`;
       }
 
-      const response = await fetch(`http://localhost:8000/api/v1/notifications/?ordering=-timestamp${filterParams}`, {
+      const response = await fetch(`${apiBaseUrl}/?ordering=-timestamp${filterParams}`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`,
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`Error: ${response.status}`);
 
       const data = await response.json();
       setNotifications(data.results || []);
       setunseenCount(data.unseenCount || 0);
-      console.log(data.unseenCount)
+
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
       setError('Failed to fetch notifications.');
-    }
+    } 
   };
 
   // Function to mark all notifications as seen
   const markAllAsSeen = async () => {
     const accessToken = localStorage.getItem('access_token');
     try {
-      const response = await fetch('http://localhost:8000/api/v1/notifications/mark-all-seen/', {
+      const response = await fetch(`${apiBaseUrl}/api/v1/notifications/mark-all-seen/`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -70,6 +70,7 @@ function NotificationDropdown() {
       console.error(error);
     }
   };
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -151,6 +152,7 @@ function NotificationDropdown() {
     }
   };
 
+
   const isToday = (dateString) => {
     const date = new Date(dateString);
     const today = new Date();
@@ -161,14 +163,21 @@ function NotificationDropdown() {
     );
   };
 
+  // Define theme-based styles
+  const isDarkMode = theme.colorScheme === 'dark';
+  const bgColor = isDarkMode ? 'bg-transparent' : 'bg-transparent text-black';
+  const textColor = isDarkMode ? 'text-white' : 'text-gray-900';
+  const dropdownBgColor = isDarkMode ? 'bg-black' : 'shadow-lg bg-gradient-to-br from-[#cdfcff] via-[#a5d0e7] via-[#bcd9e9] via-[#fff] to-[#95cbe7] text-black';
+  const dividerColor = isDarkMode ? 'divide-gray-700' : 'divide-gray-300';
+
   return (
     <div className="z-50">
       <div className="relative">
         <button
           onClick={toggleDropdown}
-          className="notification-button bg-blue-600 text-white rounded-full p-3 shadow-lg hover:bg-blue-700 focus:outline-none"
+          className={`notification-button bg-transparent text-white rounded-full p-3 shadow-lg hover:bg-white hover:bg-opacity-20 text-white focus:outline-none' ${isDarkMode ? 'bg-transparent text-white hover:bg-white hover:bg-opacity-20' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'}`}
         >
-          <BellIcon className="h-6 w-6" />
+          <BellIcon className={` h-8 w-8' ${isDarkMode ? 'text-white ' : 'text-black'}`}/>
           {unseenCount > 0 && (
             <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
               {unseenCount}
@@ -177,13 +186,13 @@ function NotificationDropdown() {
         </button>
 
         {open && (
-          <div ref={dropdownRef} className="absolute right-0 top-full mt-4 w-96 bg-black text-white rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 max-h-96 overflow-y-auto transition-transform transform">
-            {/* Notifications Dropdown Content */}
+
+          <div ref={dropdownRef} className={`absolute right-0 top-full mt-4 w-96 ${dropdownBgColor} ${textColor} rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 max-h-96 overflow-y-auto transition-transform transform`}>            {/* Notifications Dropdown Content */}
             <div className="py-2">
-              <h2 className="text-xl font-bold px-4 mb-2">Notifications</h2>
+            <h2 className={`text-xl font-bold px-4 mb-2 ${textColor}`}>Notifications</h2>
               <div className="px-4 flex space-x-2 mb-2">
                 <select
-                  className="bg-gray-800 text-white px-2 py-1 rounded"
+                  className={`px-2 py-1 rounded ${bgColor} ${textColor}`}
                   value={isReadFilter}
                   onChange={(e) => setIsReadFilter(e.target.value)}
                 >
@@ -192,7 +201,7 @@ function NotificationDropdown() {
                   <option value="UNREAD">Unread</option>
                 </select>
                 <select
-                  className="bg-gray-800 text-white px-2 py-1 rounded"
+                  className={`px-2 py-1 rounded ${bgColor} ${textColor}`}
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
                 >
@@ -204,7 +213,7 @@ function NotificationDropdown() {
                   <option value="RES">Responses</option>
                 </select>
               </div>
-              <div className="divide-y divide-gray-600">
+              <div className={`divide-y ${dividerColor}`}>
                 <div className="px-4 py-2">
                   <h3 className="text-lg font-semibold mb-2">This day</h3>
                   {notifications.filter(notification => isToday(notification.timestamp)).length === 0 ? (
@@ -215,7 +224,7 @@ function NotificationDropdown() {
                       .map((notification) => (
                         <div
                           key={notification.id}
-                          className={`py-2 flex justify-between items-center ${
+                          className={`py-2 flex justify-between items-center ${bgColor} ${
                             !notification.is_read ? 'bg-gray-800' : 'bg-gray-900'
                           } cursor-pointer`}
                           onClick={() => handleNotificationClick(notification)}
@@ -246,7 +255,7 @@ function NotificationDropdown() {
                       .map((notification) => (
                         <div
                           key={notification.id}
-                          className={`py-2 flex justify-between items-center ${
+                          className={`py-2 flex justify-between items-center ${bgColor} ${
                             !notification.is_read ? 'bg-gray-800' : 'bg-gray-900'
                           } cursor-pointer`}
                           onClick={() => handleNotificationClick(notification)}
@@ -272,7 +281,7 @@ function NotificationDropdown() {
         )}
       </div>
     </div>
-  );
+  )
 }
 
 export default NotificationDropdown;

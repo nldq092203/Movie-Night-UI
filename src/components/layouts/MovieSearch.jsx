@@ -5,7 +5,7 @@ import MovieCard from '../medias/MovieCard';  // Assuming you already have this 
 import { useLocation } from 'react-router-dom'; // To read query parameters
 import Header from '../navigations/Header';
 
-function MovieSearch() {
+function MovieSearch({ theme, toggleTheme }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -102,11 +102,13 @@ function MovieSearch() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white relative">
-      <Header />
+    <div className={`min-h-screen relative px-1 py-5 ${theme.colorScheme === 'dark' ? 'bg-black text-white' : 'bg-gradient-to-br from-[#cdfcff] via-[#a5d0e7] via-[#bcd9e9] via-[#fff] to-[#95cbe7] text-black'}`}>
+      <div className="fixed w-full top-0 bg-transparent py-4 z-50">
+        <Header theme={theme} toggleTheme={toggleTheme} />
+      </div>
       {/* Search Results */}
-      <div className="container mx-auto px-4 py-10">
-        <h2 className="text-3xl font-bold mb-5">Search Results</h2>
+      <div className="container mx-auto px-4 py-10 pt-40 lg:flex-row items-center lg:items-start">
+        <h2 className="text-3xl font-bold mb-10">Search Results</h2>
 
         {loading && <p className="text-center"> Loading time can be maximum 2 minutes. Please wait ...</p>}
         {error && <p className="text-center text-red-500">{error}</p>}
@@ -114,7 +116,7 @@ function MovieSearch() {
         {results.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {results.map((movie) => (
-              <MovieCard key={movie.id} movie={movie} />
+              <MovieCard key={movie.id} movie={movie} theme={theme}/>
             ))}
           </div>
         )}
