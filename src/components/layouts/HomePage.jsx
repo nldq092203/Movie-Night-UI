@@ -5,20 +5,17 @@ import MovieCard from '../medias/MovieCard';
 import FilterDrawer from '../navigations/FilterDrawer';
 import GenreSection from '../medias/GenreFilters';
 import Header from '../navigations/Header';
-import { Box} from '@mantine/core';
+import { Box, Text } from '@mantine/core';
 
-function HomePage() {
+function HomePage({ theme, toggleTheme }) {
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [nextPageUrl, setNextPageUrl] = useState(`${apiBaseUrl}/api/v1/movies/`);
+  const [hasMore, setHasMore] = useState(true);
+  const [showHeader, setShowHeader] = useState(true);
 
-  // Pagination states
-  const [nextPageUrl, setNextPageUrl] = useState(`${apiBaseUrl}/api/v1/movies/`); // Start at the first page
-  const [hasMore, setHasMore] = useState(true); // Whether there are more pages
-  const [showHeader, setShowHeader] = useState(true); // For the header visibility
-
-  // Filters and sorting state
   const [filters, setFilters] = useState({
     genres: [],
     country: '',
@@ -32,9 +29,8 @@ function HomePage() {
   });
   const [ordering, setOrdering] = useState('');
 
-  // Fetch movies from the API
   const fetchMovies = async (url) => {
-    if (!url || loading) return; // Prevent multiple simultaneous requests
+    if (!url || loading) return;
     setLoading(true);
     setError(null);
 
@@ -42,28 +38,21 @@ function HomePage() {
       const response = await axios.get(url, {
         params: {
           genres: filters.genres.length > 0 ? filters.genres.join(',') : undefined,
-          country: filters.country ? filters.country : undefined,
-          year: filters.year ? filters.year : undefined,
-          runtime_minutes: filters.runtime ? filters.runtime : undefined,
-          imdb_rating_from: filters.imdb_rating_from ? filters.imdb_rating_from : undefined,
-          runtime_minutes_from: filters.runtime_minutes_from ? filters.runtime_minutes_from : undefined,
-          runtime_minutes_to: filters.runtime_minutes_to ? filters.runtime_minutes_to : undefined,
-          ordering: ordering ? ordering : undefined,
-          published_from: filters.published_from ? filters.published_from : undefined,
-          published_to: filters.published_to ? filters.published_to : undefined,
+          country: filters.country,
+          year: filters.year,
+          runtime_minutes: filters.runtime,
+          imdb_rating_from: filters.imdb_rating_from,
+          runtime_minutes_from: filters.runtime_minutes_from,
+          runtime_minutes_to: filters.runtime_minutes_to,
+          ordering,
+          published_from: filters.published_from,
+          published_to: filters.published_to,
         },
       });
-      
-      // Append new movies to the existing list
-      setMovies((prevMovies) => [...prevMovies, ...response.data.results]);
 
-      // Check if there's more data to fetch
-      if (response.data.next) {
-        setNextPageUrl(response.data.next);
-        setHasMore(true);
-      } else {
-        setHasMore(false);
-      }
+      setMovies((prevMovies) => [...prevMovies, ...response.data.results]);
+      setNextPageUrl(response.data.next || null);
+      setHasMore(!!response.data.next);
     } catch (err) {
       console.error(err);
       setError('No results.');
@@ -72,16 +61,13 @@ function HomePage() {
     }
   };
 
-  // Fetch movies on initial load and when filters or ordering change
   useEffect(() => {
-    // Reset movie list and page when filters or ordering change
     setMovies([]);
     setNextPageUrl(`${apiBaseUrl}/api/v1/movies/`);
     setHasMore(true);
     fetchMovies(`${apiBaseUrl}/api/v1/movies/`);
   }, [filters, ordering]);
 
-  // Infinite scroll handler
   const handleScroll = () => {
     if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 100) {
       if (!loading && hasMore) {
@@ -89,37 +75,27 @@ function HomePage() {
       }
     }
 
-    // Handle header visibility
-    if (document.documentElement.scrollTop > 150) {
-      setShowHeader(false);
-    } else {
-      setShowHeader(true);
-    }
+    setShowHeader(document.documentElement.scrollTop <= 150);
   };
 
-  // Attach scroll event listener
   useEffect(() => {
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll); // Cleanup on unmount
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [nextPageUrl, hasMore, loading]);
 
-
-
   return (
-    <div className="min-h-screen relative px-8 py-5 bg-black">
-      {/* Header section */}
-      < Header />
-
-      {/* Genre Filters */}
-      <Box m={40}>
-        <GenreSection
-          apiBaseUrl={apiBaseUrl}
-          filters={filters}
-          setFilters={setFilters}
-        />
+    <div className={`min-h-screen relative px-1 py-5 ${theme.colorScheme === 'dark' ? 'bg-black text-white' : 'bg-gradient-to-br from-[#cdfcff] via-[#a5d0e7] via-[#bcd9e9] via-[#fff] to-[#95cbe7] text-black'}`}>
+      
+      {/* Fixed Header */}
+      <div className="fixed w-full top-0 bg-transparent py-4 z-50">
+        <Header theme={theme} toggleTheme={toggleTheme} />
+      </div>
+      
+      {/* Main Content with top padding to avoid overlap */}
+      <Box mt={4} mb={8} className='pt-40'>
+        <GenreSection theme={theme} apiBaseUrl={apiBaseUrl} filters={filters} setFilters={setFilters} />
       </Box>
-
-      {/* Category Filters */}
+      
       <div className="flex justify-end space-x-2 mb-8">
         <FilterDrawer
           filters={filters}
@@ -128,21 +104,21 @@ function HomePage() {
           setOrdering={setOrdering}
           isFilterOpen={isFilterOpen}
           setIsFilterOpen={setIsFilterOpen}
+          theme={theme}
         />
       </div>
-
-      {/* Movie List Section */}
+      
       <div className="container mx-auto px-10 py-10">
         {loading && !movies.length ? (
-          <p className="text-center">Loading...</p>
+          <Text align="center" c="dimmed">Loading...</Text>
         ) : error ? (
-          <p className="text-center text-red-500">{error}</p>
+          <Text align="center" c="red">{error}</Text>
         ) : !movies.length ? (
-          <p className="text-center text-white">No movies found. Please search for a movie.</p>
+          <Text align="center" c="dimmed">No movies found. Please search for a movie.</Text>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {movies.map((movie) => (
-              <MovieCard key={movie.id} movie={movie} />
+              <MovieCard theme={theme} key={movie.id} movie={movie} />
             ))}
           </div>
         )}

@@ -6,11 +6,11 @@ import { format } from 'date-fns';
 import { Modal, Button, Group, TextInput, Alert, Text, Box, Image, Accordion, Select } from '@mantine/core';
 import { IconClock, IconUser, IconTrash} from '@tabler/icons-react';
 import Clock from '../utilities/Clock';
-import UserDropdown from '../navigations/UserDropDown';
 import { useMovieNightContext } from '../../context/MovieNightContext';
 import Header from '../navigations/Header';
+import { apiBaseUrl } from '../../config';
 
-function MovieNightDetails() {
+function MovieNightDetails({ theme, toggleTheme }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [movieNight, setMovieNight] = useState(null);
@@ -33,7 +33,7 @@ function MovieNightDetails() {
   useEffect(() => {
     const fetchUserEmail = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/auth/users/', {
+        const response = await axios.get(`${apiBaseUrl}/auth/users/`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
         setUserEmail(response.data.results[0].email);
@@ -47,7 +47,7 @@ function MovieNightDetails() {
   const fetchMovieNightDetails = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:8000/api/v1/movie-nights/${id}/`, {
+      const response = await axios.get(`${apiBaseUrl}/api/v1/movie-nights/${id}/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       setMovieNight(response.data);
@@ -67,7 +67,7 @@ function MovieNightDetails() {
   const fetchMovieDetails = async () => {
     if (movieNight?.movie) {
       try {
-        const response = await axios.get(`http://localhost:8000/api/v1/movies/${movieNight.movie}/`, {
+        const response = await axios.get(`${apiBaseUrl}/api/v1/movies/${movieNight.movie}/`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
         setMovieDetails(response.data);
@@ -86,7 +86,7 @@ function MovieNightDetails() {
     setErrors({});
     try {
       const response = await axios.patch(
-        `http://localhost:8000/api/v1/movie-nights/${id}/`,
+        `${apiBaseUrl}/api/v1/movie-nights/${id}/`,
         { start_time: newStartTime },
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
@@ -101,7 +101,7 @@ function MovieNightDetails() {
   const handleDelete = async () => {
     setErrors({});
     try {
-      await axios.delete(`http://localhost:8000/api/v1/movie-nights/${id}/`, {
+      await axios.delete(`${apiBaseUrl}/api/v1/movie-nights/${id}/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       navigate(`/movies/${movieNight.movie}/`);
@@ -114,7 +114,7 @@ function MovieNightDetails() {
     setErrors({});
     try {
       await axios.post(
-        `http://localhost:8000/api/v1/movie-nights/${id}/invite/`,
+        `${apiBaseUrl}/api/v1/movie-nights/${id}/invite/`,
         { invitee: inviteeEmail, movie_night: id },
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
@@ -133,234 +133,233 @@ function MovieNightDetails() {
   if (loading) return <p>Loading...</p>;
   if (!movieNight) return null;
 
-  const formattedDate = format(new Date(movieNight.start_time), 'EEEE, d MMMM yyyy');
-  const formattedTime = format(new Date(movieNight.start_time), 'HH:mm');
-
+  const isDarkMode = theme.colorScheme === 'dark';
   return (
-    <div className="min-h-screen relative px-8 py-5 bg-black">
-      <Header/>
-      <Box className="min-h-screen bg-black text-white p-6 flex flex-col items-center">
-        
-        <Clock startTime={movieNight.start_time} />
-
-
-        <Box className=" bg-black text-white p-6 flex flex-row items-center">
-          {/* Poster Section */}
-          <Group position="center" mt="lg" >
-            {movieDetails && movieDetails.url_poster ? (
-              <Image src={movieDetails.url_poster} alt={movieDetails.title} radius="md" />
-            ) : (
-              <Box
-              sx={(theme) => ({
-                backgroundColor: theme.colors.dark[5],
-                height: 300,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: theme.radius.md,
-              })}
-              >
-                <Text c="dimmed">No poster available</Text>
-              </Box>
-            )}
-          </Group>
-
-          <Box className="flex-1 p-6 bg-tranparent text-white" ml="5em" borderRadius="md" shadow="sm">
-            {/* Movie Title */}
-            <Text size="xl" weight={700} style={{ fontWeight:"bold", fontSize: '2.5rem', lineHeight: 1.2, color: 'white' }}>
-              {movieDetails?.title || 'Movie Night'}
-            </Text>
-
-            {/* Creator */}
-            <Text mb="2em" style={{ color: 'gray', fontSize: '1.5rem'}}>
-              <strong>Creator</strong>: {movieNight.creator}
-            </Text>
-
-            {/* Accordion Section */}
-            <Group mb="3em"s pacing="lg">
-              {/* Participants Section */}
-              <Box style={{ flex: 1 }}>
-                <Button 
-                  variant="subtle" 
-                  color="gray" 
-                  onClick={() => setShowParticipants((prev) => !prev)}
+    <div  className={`min-h-screen flex flex-col items-center justify-center ${theme.colorScheme === 'dark' ? 'bg-black text-white' : 'bg-gradient-to-br from-[#cdfcff] via-[#a5d0e7] via-[#bcd9e9] via-[#fff] to-[#95cbe7] text-black'}`}>
+      {/* Fixed Header */}
+      <div className="fixed w-full top-0 bg-transparent py-4 z-50">
+        <Header theme={theme} toggleTheme={toggleTheme} />
+      </div>
+      <div className={`min-h-screen flex flex-col items-center pt-40 justify-center ${theme.colorScheme === 'dark' ? 'bg-black text-white' : 'bg-gradient-to-br from-[#cdfcff] via-[#a5d0e7] via-[#bcd9e9] via-[#fff] to-[#95cbe7] text-black'}`}>
+        <Box className={`max-w-6xl w-full p-4 m-10 ${theme.colorScheme === 'dark' ? 'bg-black text-white' : 'shadow-lg bg-gradient-to-br from-[#cdfcff] via-[#a5d0e7] via-[#bcd9e9] via-[#fff] to-[#95cbe7] text-black'} bg-opacity-90 rounded-lg shadow-lg`}>
+          <Clock startTime={movieNight.start_time} theme={theme}/>
+          <Box className={`bg-${isDarkMode ? 'black' : 'transparent'} text-white p-6 flex flex-row items-center`}>
+            {/* Poster Section */}
+            <Group position="center" mt="lg" >
+              {movieDetails && movieDetails.url_poster ? (
+                <Image src={movieDetails.url_poster} alt={movieDetails.title} radius="md" />
+              ) : (
+                <Box
+                  sx={{
+                    backgroundColor: isDarkMode ? '#333' : '#e0e0e0',
+                    height: 300,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
                 >
-                </Button>
-                {showParticipants && (
-                  <Accordion variant="separated" styles={{ control: { backgroundColor: '#333', color: 'white' } }}>
-                    <Accordion.Item value="participants">
-                      <Accordion.Control>Participants</Accordion.Control>
-                      <Accordion.Panel>
-                        {movieNight.participants.length > 0 ? (
-                          movieNight.participants.map((participant) => (
-                            <Text key={participant.id} style={{ color: 'black' }}>
-                              {participant}
-                            </Text>
-                          ))
-                        ) : (
-                          <Text style={{ color: 'gray' }}>No participants</Text>
-                        )}
-                      </Accordion.Panel>
-                    </Accordion.Item>
-                  </Accordion>
-                )}
-              </Box>
-
-              {/* Pending Invitees Section */}
-              <Box style={{ flex: 1 }}>
-                <Button 
-                  variant="subtle" 
-                  color="black" 
-                  onClick={() => setShowPendingInvitees((prev) => !prev)}
-                >
-                
-                </Button>
-                {showPendingInvitees && (
-                  <Accordion variant="separated" styles={{ control: { backgroundColor: '#333', color: 'white' } }}>
-                    <Accordion.Item value="pending-invitees">
-                      <Accordion.Control>Pending Invitees</Accordion.Control>
-                      <Accordion.Panel>
-                        {movieNight.pending_invitees.length > 0 ? (
-                          movieNight.pending_invitees.map((invitee) => (
-                            <Text style={{ color: 'black' }} key={invitee} >
-                              {invitee}
-                            </Text>
-                          ))
-                        ) : (
-                          <Text style={{ color: 'black' }}>No pending invitees</Text>
-                        )}
-                      </Accordion.Panel>
-                    </Accordion.Item>
-                  </Accordion>
-                )}
-              </Box>
+                  <Text c="dimmed">No poster available</Text>
+                </Box>
+              )}
             </Group>
-            <Group mt="lg" spacing="sm">
-                <Button 
-                color="blue" 
-                radius="md"
-                onClick={() => setIsUpdatingTime(true)}
+
+            <Box className={`flex-1 p-6 bg-transparent ${isDarkMode ? 'text-white' : 'text-black'}`} ml="5em" borderRadius="md" shadow="sm">
+              {/* Movie Title */}
+              <Text size="xl" weight={700} style={{ fontWeight: "bold", fontSize: '2.5rem', lineHeight: 1.2 }}>
+                {movieDetails?.title || 'Movie Night'}
+              </Text>
+
+              {/* Creator */}
+              <Text mb="2em" style={{ color: 'gray', fontSize: '1.5rem'}}>
+                <strong>Creator</strong>: {movieNight.creator}
+              </Text>
+
+              {/* Accordion Section */}
+              <Group mb="3em" spacing="lg">
+                {/* Participants Section */}
+                <Box style={{ flex: 1 }}>
+                  <Button 
+                    variant="subtle" 
+                    color="gray" 
+                    onClick={() => setShowParticipants((prev) => !prev)}
+                  >
+                  </Button>
+                  {showParticipants && (
+                    <Accordion variant="separated" styles={{ control: { backgroundColor: '#333', color: 'white' } }}>
+                      <Accordion.Item value="participants">
+                        <Accordion.Control>Participants</Accordion.Control>
+                        <Accordion.Panel>
+                          {movieNight.participants.length > 0 ? (
+                            movieNight.participants.map((participant) => (
+                              <Text key={participant.id} style={{ color: 'black' }}>
+                                {participant}
+                              </Text>
+                            ))
+                          ) : (
+                            <Text style={{ color: 'gray' }}>No participants</Text>
+                          )}
+                        </Accordion.Panel>
+                      </Accordion.Item>
+                    </Accordion>
+                  )}
+                </Box>
+
+                {/* Pending Invitees Section */}
+                <Box style={{ flex: 1 }}>
+                  <Button 
+                    variant="subtle" 
+                    color="black" 
+                    onClick={() => setShowPendingInvitees((prev) => !prev)}
+                  >
+                  
+                  </Button>
+                  {showPendingInvitees && (
+                    <Accordion variant="separated" styles={{ control: { backgroundColor: '#333', color: 'white' } }}>
+                      <Accordion.Item value="pending-invitees">
+                        <Accordion.Control>Pending Invitees</Accordion.Control>
+                        <Accordion.Panel>
+                          {movieNight.pending_invitees.length > 0 ? (
+                            movieNight.pending_invitees.map((invitee) => (
+                              <Text style={{ color: 'black' }} key={invitee} >
+                                {invitee}
+                              </Text>
+                            ))
+                          ) : (
+                            <Text style={{ color: 'black' }}>No pending invitees</Text>
+                          )}
+                        </Accordion.Panel>
+                      </Accordion.Item>
+                    </Accordion>
+                  )}
+                </Box>
+              </Group>
+              <Group mt="lg" spacing="sm">
+                  <Button 
+                  color="blue" 
+                  radius="md"
+                  onClick={() => setIsUpdatingTime(true)}
+                  >
+                    <IconClock style={{ marginRight: 8 }} />
+                    Update Start Time
+                  </Button>
+                  <Button 
+                  color="green" 
+                  radius="md"
+                  onClick={() => setIsInviting(true)}
+                  >
+                    <IconUser style={{ marginRight: 8 }} />
+                    Invite Friends
+                  </Button>
+                  <Button 
+                  color="red" 
+                  radius="md"
+                  onClick={() => setIsConfirmingDelete(true)}
+                  >
+                    <IconTrash style={{ marginRight: 8 }} />
+                    Delete Movie Night
+                  </Button>
+              </Group>
+            </Box>
+          </Box>  
+
+          <Modal
+            opened={isUpdatingTime}
+            onClose={() => setIsUpdatingTime(false)}
+            title="Update Start Time"
+            centered
+            styles={{
+              modal: { backgroundColor: isDarkMode ? '#000' : '#fff', border: 'none' },
+              header: { color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#000' : '#fff' },
+              body: { backgroundColor: isDarkMode ? '#1f1f1f' : '#f0f0f0', color: isDarkMode ? '#e0e0e0' : '#000' }
+            }}
+          >
+            <TextInput
+              type="datetime-local"
+              value={newStartTime}
+              onChange={(e) => setNewStartTime(e.target.value)}
+              error={errors.update}
+            />
+            <Select
+              label="Notify me before"
+              value={newNotificationTime}
+              onChange={(value) => setNewNotificationTime(value)}
+              data={[
+                { value: 'PT5M', label: '5 minutes before' },
+                { value: 'PT15M', label: '15 minutes before' },
+                { value: 'PT30M', label: '30 minutes before' },
+                { value: 'PT1H', label: '1 hour before' },
+                { value: 'PT2H', label: '2 hours before' },
+                { value: 'PT3H', label: '3 hours before' },
+                { value: 'PT6H', label: '6 hours before' },
+                { value: 'PT12H', label: '12 hours before' },
+                { value: 'PT24H', label: '24 hours before' },
+              ]}
+            />
+            <Group position="right" mt="md">
+              <Button color="dark" onClick={() => setIsUpdatingTime(false)}  styles={{ root: { backgroundColor: '#666', color: '#ffffff' } }}>
+                Cancel
+              </Button>
+              <button
+                  onClick={handleStartTimeUpdate}
+                  className="bg-blue-500 px-4 py-2 text-white rounded-lg"
                 >
-                  <IconClock style={{ marginRight: 8 }} />
-                  Update Start Time
-                </Button>
-                <Button 
-                color="green" 
-                radius="md"
-                onClick={() => setIsInviting(true)}
-                >
-                  <IconUser style={{ marginRight: 8 }} />
-                  Invite Friends
-                </Button>
-                <Button 
-                color="red" 
-                radius="md"
-                onClick={() => setIsConfirmingDelete(true)}
-                >
-                  <IconTrash style={{ marginRight: 8 }} />
-                  Delete Movie Night
-                </Button>
+                  Save
+                </button>
             </Group>
-          </Box>
-        </Box>  
+          </Modal>
 
-        <Modal
-          opened={isUpdatingTime}
-          onClose={() => setIsUpdatingTime(false)}
-          title="Update Start Time"
-          centered
-          styles={{
-            modal: { backgroundColor: '#000', border: 'none' }, 
-            header: { color: '#ffff', backgroundColor: '#000'}, // Title color
-            body: { backgroundColor: '#1f1f1f', color: '#e0e0e0' } // Body text color
-          }}
-        >
-          <TextInput
-            type="datetime-local"
-            value={newStartTime}
-            onChange={(e) => setNewStartTime(e.target.value)}
-            error={errors.update}
-          />
-          <Select
-            label="Notify me before"
-            value={newNotificationTime}
-            onChange={(value) => setNewNotificationTime(value)}
-            data={[
-              { value: 'PT5M', label: '5 minutes before' },
-              { value: 'PT15M', label: '15 minutes before' },
-              { value: 'PT30M', label: '30 minutes before' },
-              { value: 'PT1H', label: '1 hour before' },
-              { value: 'PT2H', label: '2 hours before' },
-              { value: 'PT3H', label: '3 hours before' },
-              { value: 'PT6H', label: '6 hours before' },
-              { value: 'PT12H', label: '12 hours before' },
-              { value: 'PT24H', label: '24 hours before' },
-            ]}
-          />
-          <Group position="right" mt="md">
-            <Button color="dark" onClick={() => setIsUpdatingTime(false)}  styles={{ root: { backgroundColor: '#666', color: '#ffffff' } }}>
-              Cancel
-            </Button>
-            <button
-                onClick={handleStartTimeUpdate}
-                className="bg-blue-500 px-4 py-2 text-white rounded-lg"
-              >
-                Save
-              </button>
-          </Group>
-        </Modal>
+          <Modal
+            opened={isConfirmingDelete}
+            onClose={() => setIsConfirmingDelete(false)}
+            title="Confirm Delete"
+            centered
+            styles={{
+              modal: { backgroundColor: isDarkMode ? '#000' : '#fff', border: 'none' },
+              header: { color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#000' : '#fff' },
+              body: { backgroundColor: isDarkMode ? '#1f1f1f' : '#f0f0f0', color: isDarkMode ? '#e0e0e0' : '#000' }
+            }}
+          >
+            <Text>Are you sure you want to delete this movie night?</Text>
+            {errors.delete && <Alert color="red" mt="md">{errors.delete}</Alert>}
+            <Group position="right" mt="md">
+              <Button color="gray" onClick={() => setIsConfirmingDelete(false)}>
+                Cancel
+              </Button>
+              <Button color="red" onClick={handleDelete}>
+                Delete
+              </Button>
+            </Group>
+          </Modal>
 
-        <Modal
-          opened={isConfirmingDelete}
-          onClose={() => setIsConfirmingDelete(false)}
-          title="Confirm Delete"
-          centered
-          styles={{
-            modal: { backgroundColor: '#000', border: 'none' }, 
-            header: { color: '#ffff', backgroundColor: '#000'}, // Title color
-            body: { backgroundColor: '#1f1f1f', color: '#e0e0e0' } // Body text color
-          }}
-        >
-          <Text>Are you sure you want to delete this movie night?</Text>
-          {errors.delete && <Alert color="red" mt="md">{errors.delete}</Alert>}
-          <Group position="right" mt="md">
-            <Button color="gray" onClick={() => setIsConfirmingDelete(false)}>
-              Cancel
-            </Button>
-            <Button color="red" onClick={handleDelete}>
-              Delete
-            </Button>
-          </Group>
-        </Modal>
-
-        <Modal
-          opened={isInviting}
-          onClose={() => setIsInviting(false)}
-          title="Invite a Friend"
-          centered
-          styles={{
-            modal: { backgroundColor: '#000', border: 'none' }, 
-            header: { color: '#ffff', backgroundColor: '#000'}, // Title color
-            body: { backgroundColor: '#1f1f1f', color: '#e0e0e0' } // Body text color
-          }}
-        >
-          <TextInput
-            type="email"
-            value={inviteeEmail}
-            onChange={(e) => setInviteeEmail(e.target.value)}
-            placeholder="Enter email"
-            error={errors.invite}
-          />
-          <Group position="right" mt="md">
-            <Button color="gray" onClick={() => setIsInviting(false)}>
-              Cancel
-            </Button>
-            <Button color="green" onClick={handleInvite}>
-              Send Invite
-            </Button>
-          </Group>
-        </Modal>
-      </Box>
+          <Modal
+            opened={isInviting}
+            onClose={() => setIsInviting(false)}
+            title="Invite a Friend"
+            centered
+            styles={{
+              modal: { backgroundColor: isDarkMode ? '#000' : '#fff', border: 'none' },
+              header: { color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#000' : '#fff' },
+              body: { backgroundColor: isDarkMode ? '#1f1f1f' : '#f0f0f0', color: isDarkMode ? '#e0e0e0' : '#000' }
+            }}
+          >
+            <TextInput
+              type="email"
+              value={inviteeEmail}
+              onChange={(e) => setInviteeEmail(e.target.value)}
+              placeholder="Enter email"
+              error={errors.invite}
+            />
+            <Group position="right" mt="md">
+              <Button color="gray" onClick={() => setIsInviting(false)}>
+                Cancel
+              </Button>
+              <Button color="green" onClick={handleInvite}>
+                Send Invite
+              </Button>
+            </Group>
+          </Modal>
+        </Box>
+      </div>
     </div>
   );
 }
