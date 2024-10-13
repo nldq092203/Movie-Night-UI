@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BellIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
-import { useMovieNightContext } from '../../context/MovieNightContext';
 import { apiBaseUrl } from '../../config';
 
 function NotificationDropdown({ theme }) {
   const [open, setOpen] = useState(false);
-  const { saveInvitationData } = useMovieNightContext(); 
   const [notifications, setNotifications] = useState([]);
   const [unseenCount, setunseenCount] = useState(0);
   const [error, setError] = useState(null);
@@ -30,7 +28,7 @@ function NotificationDropdown({ theme }) {
         filterParams += `&notification_type=${filterType}`;
       }
 
-      const response = await fetch(`${apiBaseUrl}/?ordering=-timestamp${filterParams}`, {
+      const response = await fetch(`${apiBaseUrl}/api/v1/notifications/?ordering=-timestamp${filterParams}`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`,
@@ -112,7 +110,7 @@ function NotificationDropdown({ theme }) {
   const markAsRead = async (notificationId) => {
     const accessToken = localStorage.getItem('access_token');
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/notifications/${notificationId}/mark-read/`, {
+      const response = await fetch(`${apiBaseUrl}/api/v1/notifications/${notificationId}/mark-read/`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -143,11 +141,6 @@ function NotificationDropdown({ theme }) {
     } else if (notification_type === 'RES') {
       navigate(`/movie-nights/${content_object.movie_night_id}`);
     } else if (notification_type === 'INV') {
-      saveInvitationData({
-        attendanceConfirmed: content_object.attendance_confirmed,
-        isAttending: content_object.is_attending,
-        movienight_invitation_id: object_id,
-      });
       navigate(`/movie-nights/${content_object.movie_night_id}`);
     }
   };
