@@ -3,10 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { format } from 'date-fns';
-import { Modal, Button, Group, TextInput, Alert, Text, Box, Image, Accordion, Select } from '@mantine/core';
+import { Modal, Button, Group, TextInput, Alert, Text, Box, Image, Accordion, Select, Card } from '@mantine/core';
 import { IconClock, IconUser, IconTrash} from '@tabler/icons-react';
 import Clock from '../utilities/Clock';
-import { useMovieNightContext } from '../../context/MovieNightContext';
 import Header from '../navigations/Header';
 import { apiBaseUrl } from '../../config';
 
@@ -27,8 +26,8 @@ function MovieNightDetails({ theme, toggleTheme }) {
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [showParticipants, setShowParticipants] = useState(true);
   const [showPendingInvitees, setShowPendingInvitees] = useState(true);
-  const { invitationData } = useMovieNightContext();
-  const { attendanceConfirmed, isAttending, movienight_invitation_id } = invitationData || {};
+  const [showConfirmInvitation, setShowConfirmInvitation] = useState(false)
+  const [inviteError, setInviteError] = useState(null);
 
   useEffect(() => {
     const fetchUserEmail = async () => {
@@ -53,6 +52,7 @@ function MovieNightDetails({ theme, toggleTheme }) {
       setMovieNight(response.data);
       setNewStartTime(response.data.start_time);
       setNewNotificationTime(response.data.start_notification_before);
+      setShowConfirmInvitation(response.data.invitation_status.is_invited && !response.data.invitation_status.attendance_confirmed)
     } catch {
       setErrors((prev) => ({ ...prev, fetch: 'Failed to fetch movie night details' }));
     } finally {
@@ -130,8 +130,53 @@ function MovieNightDetails({ theme, toggleTheme }) {
     }
   };
 
+  const handleInvitationResponse = async (isAttending) => {
+    try {
+      await axios.patch(
+        `${apiBaseUrl}/api/v1/movienight-invitations/${id}/`,
+        {
+          is_attending: isAttending,
+          attendance_confirmed: true,
+        },
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+
+      setMovieNight((prevMovieNight) => {
+        let updatedParticipants = [...prevMovieNight.participants];
+        let updatedPendingInvitees = [...prevMovieNight.pending_invitees];
+
+        if (isAttending) {
+          if (!updatedParticipants.includes(userEmail)) {
+            updatedParticipants.push(userEmail);
+          }
+          updatedPendingInvitees = updatedPendingInvitees.filter(
+            (invitee) => invitee !== userEmail
+          );
+        } else {
+          updatedParticipants = updatedParticipants.filter(
+            (participant) => participant !== userEmail
+          );
+        }
+
+        return {
+          ...prevMovieNight,
+          participants: updatedParticipants,
+          pending_invitees: updatedPendingInvitees,
+        };
+      });
+
+      setShowConfirmInvitation(false) // To hide the invitation banner
+    } catch (error) {
+      console.error("Failed to respond to the invitation:", error);
+      setInviteError('Failed to respond to the invitation');
+    }
+  };
+
   if (loading) return <p>Loading...</p>;
   if (!movieNight) return null;
+  const isCreator = userEmail === movieNight.creator
 
   const isDarkMode = theme.colorScheme === 'dark';
   return (
@@ -140,7 +185,39 @@ function MovieNightDetails({ theme, toggleTheme }) {
       <div className="fixed w-full top-0 bg-transparent py-4 z-50">
         <Header theme={theme} toggleTheme={toggleTheme} />
       </div>
+
       <div className={`min-h-screen flex flex-col items-center pt-40 justify-center ${theme.colorScheme === 'dark' ? 'bg-black text-white' : 'bg-gradient-to-br from-[#cdfcff] via-[#a5d0e7] via-[#bcd9e9] via-[#fff] to-[#95cbe7] text-black'}`}>
+        {/* Invitation Response Banner */}
+        {showConfirmInvitation && (
+          <Card shadow="md" padding="lg" radius="md"  className={`w-full max-w-4xl mb-6 ${theme.colorScheme === 'dark' ? 'bg-black text-white' : 'shadow-lg bg-gradient-to-br from-[#cdfcff] via-[#a5d0e7] via-[#bcd9e9] via-[#fff] to-[#95cbe7] text-black'} bg-opacity-90 rounded-lg shadow-lg`}>
+            <Text size="lg" weight={500}>
+              You have been invited to this movie night. Would you like to attend?
+            </Text>
+            <Group position="center" spacing="md" mt="sm">
+              <Button
+                onClick={() => handleInvitationResponse(true)}
+                color="green"
+                radius="md"
+                variant="filled"
+              >
+                Accept
+              </Button>
+              <Button
+                onClick={() => handleInvitationResponse(false)}
+                color="red"
+                radius="md"
+                variant="filled"
+              >
+                Decline
+              </Button>
+            </Group>
+            {inviteError && (
+              <Alert color="red" mt="md" radius="md">
+                {inviteError}
+              </Alert>
+            )}
+          </Card>
+        )}
         <Box className={`max-w-6xl w-full p-4 m-10 ${theme.colorScheme === 'dark' ? 'bg-black text-white' : 'shadow-lg bg-gradient-to-br from-[#cdfcff] via-[#a5d0e7] via-[#bcd9e9] via-[#fff] to-[#95cbe7] text-black'} bg-opacity-90 rounded-lg shadow-lg`}>
           <Clock startTime={movieNight.start_time} theme={theme}/>
           <Box className={`bg-${isDarkMode ? 'black' : 'transparent'} text-white p-6 flex flex-row items-center`}>
@@ -163,7 +240,7 @@ function MovieNightDetails({ theme, toggleTheme }) {
               )}
             </Group>
 
-            <Box className={`flex-1 p-6 bg-transparent ${isDarkMode ? 'text-white' : 'text-black'}`} ml="5em" borderRadius="md" shadow="sm">
+            <Box className={`flex-1 p-6 bg-transparent ${isDarkMode ? 'text-white' : 'text-black'}`} ml="5em" shadow="sm">
               {/* Movie Title */}
               <Text size="xl" weight={700} style={{ fontWeight: "bold", fontSize: '2.5rem', lineHeight: 1.2 }}>
                 {movieDetails?.title || 'Movie Night'}
@@ -205,33 +282,35 @@ function MovieNightDetails({ theme, toggleTheme }) {
                 </Box>
 
                 {/* Pending Invitees Section */}
-                <Box style={{ flex: 1 }}>
-                  <Button 
-                    variant="subtle" 
-                    color="black" 
-                    onClick={() => setShowPendingInvitees((prev) => !prev)}
-                  >
-                  
-                  </Button>
-                  {showPendingInvitees && (
-                    <Accordion variant="separated" styles={{ control: { backgroundColor: '#333', color: 'white' } }}>
-                      <Accordion.Item value="pending-invitees">
-                        <Accordion.Control>Pending Invitees</Accordion.Control>
-                        <Accordion.Panel>
-                          {movieNight.pending_invitees.length > 0 ? (
-                            movieNight.pending_invitees.map((invitee) => (
-                              <Text style={{ color: 'black' }} key={invitee} >
-                                {invitee}
-                              </Text>
-                            ))
-                          ) : (
-                            <Text style={{ color: 'black' }}>No pending invitees</Text>
-                          )}
-                        </Accordion.Panel>
-                      </Accordion.Item>
-                    </Accordion>
-                  )}
-                </Box>
+                {isCreator &&
+                  <Box style={{ flex: 1 }}>
+                    <Button 
+                      variant="subtle" 
+                      color="black" 
+                      onClick={() => setShowPendingInvitees((prev) => !prev)}
+                    >
+                    
+                    </Button>
+                    {showPendingInvitees && (
+                      <Accordion variant="separated" styles={{ control: { backgroundColor: '#333', color: 'white' } }}>
+                        <Accordion.Item value="pending-invitees">
+                          <Accordion.Control>Pending Invitees</Accordion.Control>
+                          <Accordion.Panel>
+                            {movieNight.pending_invitees.length > 0 ? (
+                              movieNight.pending_invitees.map((invitee) => (
+                                <Text style={{ color: 'black' }} key={invitee} >
+                                  {invitee}
+                                </Text>
+                              ))
+                            ) : (
+                              <Text style={{ color: 'black' }}>No pending invitees</Text>
+                            )}
+                          </Accordion.Panel>
+                        </Accordion.Item>
+                      </Accordion>
+                    )}
+                  </Box>
+                }
               </Group>
               <Group mt="lg" spacing="sm">
                   <Button 
