@@ -1,22 +1,53 @@
-import React, { useContext } from 'react';
-import { AuthContext } from '../../context/AuthContext';
+import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, Avatar, Text, Group, UnstyledButton } from '@mantine/core';
 import { IconChevronDown, IconHome, IconUser, IconLogout, IconLogin, IconUserPlus } from '@tabler/icons-react';
+import axios from 'axios';
+import { apiBaseUrl } from '../../config'; // Replace with your config for base API URL
+import { AuthContext } from '../../context/AuthContext';
 
 function UserDropdown({ theme }) {
   const { isAuthenticated, logoutUser } = useContext(AuthContext);
+  const [user, setUser] = useState({ email: '', profilePicture: ''});
+  const accessToken = localStorage.getItem('access_token');
   const navigate = useNavigate();
 
-  // Dummy user details for illustration
-  const user = {
-    name: 'Sarah J',
-    status: 'Premium',
-    profilePicture: 'https://i.pravatar.cc/300', // Replace with actual user image URL
-  };
+  // Fetch user email and profile data
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const userEmailResponse = await axios.get(`${apiBaseUrl}/auth/users/me/`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+
+        const userEmail = userEmailResponse.data.email;
+        console.log(userEmail)
+        if(userEmail){
+          const profileResponse = await axios.get(`${apiBaseUrl}/api/v1/profiles/${userEmail}/`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+
+          const profileData = profileResponse.data;
+          console.log(profileData)
+          setUser({
+            email: profileData.user,
+            name: profileData.name || 'Anonymous',
+            profilePicture: profileData.profilePicture || 'https://i.pravatar.cc/300',
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error);
+      }
+    };
+
+    if (accessToken) {
+      fetchUserProfile();
+    }
+  }, [accessToken]);
 
   const handleLogout = () => {
     logoutUser();
+    setUser({ email: '', profilePicture: ''})
     navigate('/');
   };
 
@@ -34,8 +65,7 @@ function UserDropdown({ theme }) {
           <Group spacing="xs">
             <Avatar src={user.profilePicture} radius="xl" size="lg" />
             <div style={{ flex: 1 }}>
-              <Text size="sm" weight={500} c={textColor}>{user.name}</Text>
-              <Text size="xs" c={subTextColor}>{user.status}</Text>
+              <Text size="sm" fw={500} c={textColor}>{user.email}</Text>
             </div>
             <IconChevronDown size={18} color={textColor} />
           </Group>
@@ -47,9 +77,9 @@ function UserDropdown({ theme }) {
           Home
         </Menu.Item>
 
-        {isAuthenticated ? (
+        {user.email ? (
           <>
-            <Menu.Item icon={<IconUser size={16} />} onClick={() => navigate('/profile')} style={{ color: textColor }}>
+            <Menu.Item icon={<IconUser size={16} />} onClick={() => navigate(`/profiles/${user.email}`)} style={{ color: textColor }}>
               Profile
             </Menu.Item>
             <Menu.Item

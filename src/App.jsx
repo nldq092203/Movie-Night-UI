@@ -7,6 +7,8 @@ import MovieDetails from './components/layouts/MovieDetails';
 import MovieSearch from './components/layouts/MovieSearch';
 import HomePage from './components/layouts/HomePage';
 import MovieNightDetails from './components/layouts/MovieNightDetails';
+import ChatComponent from './components/chat/ChatComponent'
+import Profile from './components/layouts/Profile'
 
 function App() {
   const [theme, setTheme] = useState(() => {
@@ -21,16 +23,20 @@ function App() {
     });
   };
 
+  const themeConfig = { colorScheme: theme };
+
   return (
-    <MantineProvider theme={{ colorScheme: theme }} withGlobalStyles withNormalizeCSS>
+    <MantineProvider theme={themeConfig} withGlobalStyles withNormalizeCSS>
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/" element={<HomePage theme={{ colorScheme: theme }} toggleTheme={toggleTheme} />} />
-          <Route path="/search" element={<MovieSearch theme={{ colorScheme: theme }} toggleTheme={toggleTheme} />} />
-          <Route path="/movies/:id" element={<MovieDetails theme={{ colorScheme: theme }} toggleTheme={toggleTheme}/>} />
-          <Route path="/movie-nights/:id" element={<MovieNightDetails theme={{ colorScheme: theme }} toggleTheme={toggleTheme} />} />
+          <Route path="/" element={<HomePage theme={themeConfig} toggleTheme={toggleTheme} />} />
+          <Route path="/search" element={<MovieSearch theme={themeConfig} toggleTheme={toggleTheme} />} />
+          <Route path="/movies/:id" element={<MovieDetails theme={themeConfig} toggleTheme={toggleTheme}/>} />
+          <Route path="/movie-nights/:id" element={<MovieNightDetails theme={themeConfig} toggleTheme={toggleTheme} />} />
+          <Route path="/chat" element={<ChatComponent theme={themeConfig} toggleTheme={toggleTheme}/>} />
+          <Route path="/profiles/:email" element={<Profile  theme={themeConfig} toggleTheme={toggleTheme} />} />
         </Routes>
       </Router>
     </MantineProvider>

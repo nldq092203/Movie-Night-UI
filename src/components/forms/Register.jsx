@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { apiBaseUrl } from '../../config';
 import { useNavigate } from 'react-router-dom';  // Import useNavigate
-import UserDropdown from '../navigations/UserDropDown'; // Import UserDropdown
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -100,10 +99,6 @@ function Register() {
 
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-gray-100 relative">
-      {/* UserDropdown at the top-right corner */}
-      <div className="absolute top-4 right-4">
-        <UserDropdown />
-      </div>
       <form
         onSubmit={handleSubmit}
         className="bg-white p-8 rounded-lg shadow-md max-w-md w-full"

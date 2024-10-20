@@ -28,14 +28,17 @@ function MovieNightDetails({ theme, toggleTheme }) {
   const [showPendingInvitees, setShowPendingInvitees] = useState(true);
   const [showConfirmInvitation, setShowConfirmInvitation] = useState(false)
   const [inviteError, setInviteError] = useState(null);
+  const [invitationId, setInvitationId] = useState(null)
+
 
   useEffect(() => {
     const fetchUserEmail = async () => {
       try {
-        const response = await axios.get(`${apiBaseUrl}/auth/users/`, {
+        const response = await axios.get(`${apiBaseUrl}/auth/users/me/`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
-        setUserEmail(response.data.results[0].email);
+        console.log(response.data)
+        setUserEmail(response.data.email);
       } catch (error) {
         console.error('Failed to fetch user email:', error);
       }
@@ -49,10 +52,13 @@ function MovieNightDetails({ theme, toggleTheme }) {
       const response = await axios.get(`${apiBaseUrl}/api/v1/movie-nights/${id}/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
+      console.log(response.data)
       setMovieNight(response.data);
       setNewStartTime(response.data.start_time);
       setNewNotificationTime(response.data.start_notification_before);
+      setInvitationId(response.data.invitation_status.invitation_id)
       setShowConfirmInvitation(response.data.invitation_status.is_invited && !response.data.invitation_status.attendance_confirmed)
+
     } catch {
       setErrors((prev) => ({ ...prev, fetch: 'Failed to fetch movie night details' }));
     } finally {
@@ -133,7 +139,7 @@ function MovieNightDetails({ theme, toggleTheme }) {
   const handleInvitationResponse = async (isAttending) => {
     try {
       await axios.patch(
-        `${apiBaseUrl}/api/v1/movienight-invitations/${id}/`,
+        `${apiBaseUrl}/api/v1/movienight-invitations/${invitationId}/`,
         {
           is_attending: isAttending,
           attendance_confirmed: true,
@@ -190,7 +196,7 @@ function MovieNightDetails({ theme, toggleTheme }) {
         {/* Invitation Response Banner */}
         {showConfirmInvitation && (
           <Card shadow="md" padding="lg" radius="md"  className={`w-full max-w-4xl mb-6 ${theme.colorScheme === 'dark' ? 'bg-black text-white' : 'shadow-lg bg-gradient-to-br from-[#cdfcff] via-[#a5d0e7] via-[#bcd9e9] via-[#fff] to-[#95cbe7] text-black'} bg-opacity-90 rounded-lg shadow-lg`}>
-            <Text size="lg" weight={500}>
+            <Text size="lg" fw={500}>
               You have been invited to this movie night. Would you like to attend?
             </Text>
             <Group position="center" spacing="md" mt="sm">
@@ -242,7 +248,7 @@ function MovieNightDetails({ theme, toggleTheme }) {
 
             <Box className={`flex-1 p-6 bg-transparent ${isDarkMode ? 'text-white' : 'text-black'}`} ml="5em" shadow="sm">
               {/* Movie Title */}
-              <Text size="xl" weight={700} style={{ fontWeight: "bold", fontSize: '2.5rem', lineHeight: 1.2 }}>
+              <Text size="xl" fw={700} style={{ fontwf: "bold", fontSize: '2.5rem', lineHeight: 1.2 }}>
                 {movieDetails?.title || 'Movie Night'}
               </Text>
 
