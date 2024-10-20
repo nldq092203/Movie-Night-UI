@@ -4,6 +4,8 @@ import { GoogleLogin } from '@react-oauth/google';
 import { apiBaseUrl } from '../../config';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { IconUserPlus } from '@tabler/icons-react';
+import { Button } from '@mantine/core';
 
 function Login() {
   const { loginUser, googleLogin } = useContext(AuthContext); // Include googleLogin
@@ -69,9 +71,9 @@ function Login() {
 
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-gray-100 relative">
+      <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-8 rounded-lg shadow-md max-w-md w-full"
       >
         <h2 className="text-2xl font-semibold text-center mb-6 text-gray-700">Login</h2>
 
@@ -140,6 +142,10 @@ function Login() {
           />
         </div>
       </form>
+      <Button mt="md" icon={<IconUserPlus size={16} />} onClick={() => navigate('/register')} style={{ color: 'white' }}>
+              Register
+      </Button>
+      </div>
     </div>
   );
 }

@@ -52,7 +52,7 @@ function MovieCard({ movie, theme }) {
         <Card.Section m="2">
           <Text
             align="left"
-            weight={450}
+            fw={450}
             size="lg"
             mt="md"
             style={{

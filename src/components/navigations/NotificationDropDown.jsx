@@ -39,6 +39,7 @@ function NotificationDropdown({ theme }) {
 
       const data = await response.json();
       setNotifications(data.results || []);
+      // console.log(data.results)
       setunseenCount(data.unseenCount || 0);
 
     } catch (err) {
@@ -224,7 +225,7 @@ function NotificationDropdown({ theme }) {
                         >
                           <div className="flex items-center">
                             <img
-                              src="https://via.placeholder.com/40"
+                              src=""
                               alt="User"
                               className="rounded-full h-8 w-8 mr-2"
                             />
@@ -239,9 +240,9 @@ function NotificationDropdown({ theme }) {
                 </div>
 
                 <div className="px-4 py-2">
-                  <h3 className="text-lg font-semibold mb-2">This week</h3>
+                  <h3 className="text-lg font-semibold mb-2">More</h3>
                   {notifications.filter(notification => !isToday(notification.timestamp)).length === 0 ? (
-                    <p className="text-gray-600">No notifications this week</p>
+                    <p className="text-gray-600">No more notifications</p>
                   ) : (
                     notifications
                       .filter(notification => !isToday(notification.timestamp))
@@ -255,7 +256,7 @@ function NotificationDropdown({ theme }) {
                         >
                           <div className="flex items-center">
                             <img
-                              src="https://via.placeholder.com/40"
+                              src=""
                               alt="User"
                               className="rounded-full h-8 w-8 mr-2"
                             />
