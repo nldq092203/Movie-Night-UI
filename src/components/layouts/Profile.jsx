@@ -1,28 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { Avatar, Text, Group, Flex, Box, Button, Divider, Tabs, Modal, TextInput, Textarea, Select, Loader } from '@mantine/core';
+import { Avatar, Text, Group, Flex, Box, Button, Divider, Tabs, Modal, TextInput, Textarea, Select, Loader, ActionIcon } from '@mantine/core';
+import { IconMessageCircle } from '@tabler/icons-react';
 import Header from '../navigations/Header';
 import axios from "axios";
 import { apiBaseUrl } from '../../config';
 import MovieNightSchedule from '../medias/MovieNightSchedule';
+import { useParams, useNavigate } from 'react-router-dom'; // Import useNavigate for navigation
 
 const Profile = ({ theme, toggleTheme }) => {
   const [user, setUser] = useState({ email: '', bio: '', gender: '', customGender: '', name: '' });
   const [editProfileOpen, setEditProfileOpen] = useState(false); // Modal open state
+  const [findFriendOpen, setFindFriendOpen] = useState(false); // Modal for Find Friend
+  const [friendEmail, setFriendEmail] = useState(''); // Store friend's email input
+  const [findFriendError, setFindFriendError] = useState(''); // Error message for friend search
   const [updatedUser, setUpdatedUser] = useState(user); // Store form updates
   const [loading, setLoading] = useState(true); // Loading state
+  const [myEmail, setMyEmail] = useState(null); // Store the fetched email of the logged-in user
   const accessToken = localStorage.getItem('access_token');
-  const [userEmail, setUserEmail] = useState(null);
+  const { email } = useParams();
+  const navigate = useNavigate(); // Use navigate hook to change routes
+  const [messageError, setMessageError] = useState(''); // Error for creating chat group
 
   // Fetch user email and profile data
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
+        // Fetch the logged-in user's email
         const userEmailResponse = await axios.get(`${apiBaseUrl}/auth/users/me/`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
 
-        const email = userEmailResponse.data.email;
-        setUserEmail(email);
+        const loggedInEmail = userEmailResponse.data.email;
+        setMyEmail(loggedInEmail); // Store logged-in user's email in state
 
         if (email) {
           const profileResponse = await axios.get(`${apiBaseUrl}/api/v1/profiles/${email}/`, {
@@ -51,18 +60,63 @@ const Profile = ({ theme, toggleTheme }) => {
     if (accessToken) {
       fetchUserProfile();
     }
-  }, [accessToken]);
+  }, [accessToken, email]);
+
+    // Function to create a new chat group without request body content
+    const handleChatGroup = async () => {
+      setMessageError(''); // Reset any previous errors
+  
+      try {
+        const response = await axios.post(
+          `${apiBaseUrl}/api/v1/chat-group/`, // API endpoint
+          {
+            is_private: true,
+            member_emails : [myEmail, email]
+          }, 
+          {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }
+        );
+        console.log(response.data)
+        
+        navigate(`/chat`);
+      } catch (error) {
+        console.error('Failed to create chat group:', error);
+        setMessageError('Failed to create a chat group. Please try again.');
+      }
+    };
 
   // Handle form input changes
   const handleInputChange = (field, value) => {
     setUpdatedUser((prev) => ({ ...prev, [field]: value }));
   };
 
+  // Handle Find Friend form submission
+  const handleFindFriend = async (e) => {
+    e.preventDefault();
+    setFindFriendError(''); // Reset any previous errors
+
+    try {
+      // Fetch the friend's profile using the entered email
+      const response = await axios.get(`${apiBaseUrl}/api/v1/profiles/${friendEmail}/`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      // If the profile exists, navigate to the friend's profile page
+      navigate(`/profiles/${friendEmail}`);
+      setFindFriendOpen(false); // Close the modal
+    } catch (error) {
+      console.error('Failed to find friend:', error);
+      // If the email does not exist, show an error message
+      setFindFriendError("User's email does not exist.");
+    }
+  };
+
   // Submit form data to the server
   const handleSubmit = async (e) => {
     e.preventDefault(); // Prevent default form submission behavior
     try {
-      await axios.put(`${apiBaseUrl}/api/v1/profiles/${userEmail}/`, updatedUser, {
+      await axios.put(`${apiBaseUrl}/api/v1/profiles/${email}/`, updatedUser, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       setUser(updatedUser); // Update the user profile in the state
@@ -155,17 +209,36 @@ const Profile = ({ theme, toggleTheme }) => {
               </Group>
 
               {/* Edit and Archive Buttons */}
-              <Group mt="lg" spacing="lg">
-                <Button variant="outline" size="md" onClick={() => setEditProfileOpen(true)}> {/* Increased button size */}
-                  Edit profile
-                </Button>
-              </Group>
+              {myEmail === email &&(
+                <Group mt="lg" spacing="lg">   
+                    <Button variant="outline" size="md" onClick={() => setEditProfileOpen(true)}> {/* Increased button size */}
+                      Edit profile
+                    </Button>
+                    <Button variant="outline" size="md" onClick={() => setFindFriendOpen(true)}> {/* Increased button size */}
+                      Find Friend
+                    </Button>
+                </Group>
+              )}
+              {/* Message Icon for Creating a Chat */}
+              {myEmail !== email && (
+                <Group mt="lg" spacing="lg">   
+                  <ActionIcon size="lg" variant="outline" onClick={handleChatGroup}>
+                    <IconMessageCircle size={30} />
+                  </ActionIcon>
+                  {messageError && (
+                    <Text c="red" size="sm">
+                      {messageError}
+                    </Text>
+                  )}
+                </Group>
+              )}
             </Flex>
           </Flex>
 
           <Divider my="lg" />
 
           {/* Tabs Section */}
+         {myEmail === email && (
           <Tabs defaultValue="events" mt="xl" variant="outline" position="center">
             <Tabs.List>
               <Tabs.Tab value="events">Events</Tabs.Tab>
@@ -186,6 +259,7 @@ const Profile = ({ theme, toggleTheme }) => {
               </div>
             </Tabs.Panel>
           </Tabs>
+          )}
 
           {/* Modal for Editing Profile */}
           <Modal
@@ -228,6 +302,32 @@ const Profile = ({ theme, toggleTheme }) => {
               )}
               <Button fullWidth mt="md" type="submit">
                 Save
+              </Button>
+            </form>
+          </Modal>
+
+          {/* Modal for Finding Friend */}
+          <Modal
+            opened={findFriendOpen}
+            onClose={() => setFindFriendOpen(false)}
+            title="Find Friend"
+            size="lg"
+          >
+            <form onSubmit={handleFindFriend}>
+              <TextInput
+                label="Enter friend's email"
+                value={friendEmail}
+                onChange={(e) => setFriendEmail(e.target.value)}
+                placeholder="friend@example.com"
+                required
+              />
+              {findFriendError && (
+                <Text color="red" size="sm" mt="sm">
+                  {findFriendError}
+                </Text>
+              )}
+              <Button fullWidth mt="md" type="submit">
+                Find
               </Button>
             </form>
           </Modal>

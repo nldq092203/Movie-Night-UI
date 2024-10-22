@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Avatar, Group, Text, Divider, Badge } from '@mantine/core';
 import { useAbly } from 'ably/react';
 
-const ChannelItem = ({ clientId, channel, onSelectChannel }) => {
+const ChannelItem = ({ currentUserEmail, clientId, channel, onSelectChannel }) => {
   if (!channel) {
     return null;
   }
@@ -47,7 +47,17 @@ const ChannelItem = ({ clientId, channel, onSelectChannel }) => {
     // Reset unread message count after the user selects the channel
     setUnreadCount(0);
   };
+  const getChannelName = () => {
+    if (!channel || !channel.is_private) {
+      return channel?.groupchat_name || "Unknown Channel";
+    }
 
+    const otherMembers = channel.members?.filter(member => member.user !== currentUserEmail);
+    if (otherMembers.length === 0) return "Private Chat";
+
+    const otherMember = otherMembers[0];
+    return otherMember.nickname || otherMember.name || otherMember.user;
+  };
   return (
     <div
       onClick={handleChannelClick}
@@ -64,7 +74,7 @@ const ChannelItem = ({ clientId, channel, onSelectChannel }) => {
           <Avatar src={channel.avatar || ''} radius="xl" />
           <div>
             <Text fw={unreadCount > 0 ? 900 : 700}>
-              {channel.groupchat_name || 'Unknown Channel'}
+              {getChannelName()}
             </Text>
             <Text size="xs" c="dimmed">
               {lastMessageContent}

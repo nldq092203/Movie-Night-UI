@@ -5,7 +5,7 @@ import axios from 'axios';
 import { apiBaseUrl } from '../../config';
 import ChannelItem from './ChannelItem.jsx';
 
-const ChatChannelList = ({ theme, clientId, onSelectChannel }) => {
+const ChatChannelList = ({ currentUserEmail, theme, clientId, onSelectChannel }) => {
   const [channels, setChannels] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const accessToken = localStorage.getItem('access_token');
@@ -14,7 +14,7 @@ const ChatChannelList = ({ theme, clientId, onSelectChannel }) => {
     try {
       const response = await axios.get(`${apiBaseUrl}/api/v1/chat-group/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
-        params: { group_name: query }, // Send the search query as a parameter
+        params: { groupchat_name_or_member_email: query }, // Send the search query as a parameter
       });
       console.log('API response:', response.data);
 
@@ -59,7 +59,7 @@ const ChatChannelList = ({ theme, clientId, onSelectChannel }) => {
         </Text>
         <Input
           icon={<IconSearch size={16} />}
-          placeholder="Search messages"
+          placeholder="Search by email"
           mr="md"
           mb="md"
           value={searchTerm}
@@ -84,6 +84,7 @@ const ChatChannelList = ({ theme, clientId, onSelectChannel }) => {
                 channel={channel}
                 onSelectChannel={onSelectChannel}
                 clientId={clientId}
+                currentUserEmail={currentUserEmail}
                 />
             ))}
         </ScrollArea>
