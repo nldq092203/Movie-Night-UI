@@ -32,7 +32,7 @@ function UserDropdown({ theme }) {
           setUser({
             email: profileData.user,
             name: profileData.name || 'Anonymous',
-            profilePicture: profileData.profilePicture || 'https://i.pravatar.cc/300',
+            profilePicture: profileData.avatar_url || 'https://http.cat/404',
           });
         }
       } catch (error) {

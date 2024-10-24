@@ -8,7 +8,7 @@ import MovieSearch from './components/layouts/MovieSearch';
 import HomePage from './components/layouts/HomePage';
 import MovieNightDetails from './components/layouts/MovieNightDetails';
 import ChatComponent from './components/chat/ChatComponent'
-import Profile from './components/layouts/Profile'
+import Profile from './components/profile/Profile'
 
 function App() {
   const [theme, setTheme] = useState(() => {

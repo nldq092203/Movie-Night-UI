@@ -52,7 +52,7 @@ const RightSidebar = ({
     >
       {/* Sidebar Content */}
       <Flex direction="column" align="center" justify="center" spacing="md">
-        <Avatar src="https://i.pravatar.cc/300" size={100} radius="100%" alt="User" />
+        <Avatar src={`${otherMembers[0].avatar_url}`} size={100} radius="100%" alt="User" />
         <Text size="lg" fw={700} >
           {getChannelName()}
         </Text>

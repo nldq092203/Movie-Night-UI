@@ -77,7 +77,7 @@ const ChatChannelList = ({ currentUserEmail, theme, clientId, onSelectChannel })
         />
         <ScrollArea style={{ height: 'calc(100vh - 140px)' }}>
             {channels
-            .filter((channel) => channel) // Filtering if needed
+            .filter((channel) => channel)
             .map((channel) => (
                 <ChannelItem
                 key={channel.group_name}

@@ -123,6 +123,7 @@ const handleScrollToMessage = (messageTimestamp) => {
   }
 };
 
+
   // Handle channel selection
   useEffect(() => {
     if (selectedChannel) {
@@ -155,7 +156,28 @@ const handleScrollToMessage = (messageTimestamp) => {
   };
 
 
+  // Handle sending a file through Ably
+  const sendFile = async (file) => {
+    if (selectedChannel && file) {
+      const channel = ably.channels.get(selectedChannel.group_name);
+      const reader = new FileReader();
 
+      reader.onload = async (e) => {
+        const fileData = e.target.result;
+        channel.publish({ name: 'file-transfer', data: { fileName: file.name, fileData } });
+      };
+
+      reader.readAsDataURL(file); // Convert file to base64 for transfer
+    }
+  };
+
+  // Handle receiving a file
+  const handleFileReceived = (message) => {
+    const { fileName, fileData } = message.data;
+    const fileBlob = new Blob([fileData], { type: 'application/octet-stream' });
+    saveAs(fileBlob, fileName); // Automatically download the received file
+  };
+  
   // Ably subscription for real-time messages
   useEffect(() => {
     if (!selectedChannel || !ably) return;
