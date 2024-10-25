@@ -25,22 +25,21 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
   const [hasMore, setHasMore] = useState(true);
   const currentUserEmail = clientId;
   const scrollRef = useRef(null);
-  const messageGroupingThreshold = 5 * 60 * 1000;
+  const messageGroupingThreshold = 5 * 60 * 1000; // 5 minutes
   const [selectedChannel, setSelectedChannel] = useState(null);
   const [channelInfo, setChannelInfo] = useState(null);
   const [drawerOpened, setDrawerOpened] = useState(false);
   const [searchDrawerOpen, setSearchDrawerOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(''); // Search term state
-  const [searchResults, setSearchResults] = useState([]); // Store search results
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
   const [selectedMessageId, setSelectedMessageId] = useState(null);
   const [loading, setLoading] = useState(false);
-
-
+  const [fileTransfers, setFileTransfers] = useState({}); // State for ongoing file transfers
 
   // Fetch channel details
   const fetchChatGroupDetail = async (channelName) => {
     if (!channelName) return;
-    setLoading(true); // Start loading
+    setLoading(true);
     try {
       const response = await axios.get(`${apiBaseUrl}/api/v1/chat-group/${channelName}/`, {
         headers: {
@@ -48,10 +47,10 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
         },
       });
       setChannelInfo(response.data);
-      setLoading(false); // Stop loading once the data is fetched
     } catch (error) {
       console.error('Error fetching channel info:', error);
-      setLoading(false); // Stop loading in case of error
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -75,6 +74,7 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
           clientId: msg.author,
           data: msg.body,
           timestamp: msg.created,
+          type: 'text', // Assuming historical messages are text
         }));
         setMessages((prevMessages) => [...fetchedMessages.reverse(), ...prevMessages]);
         setHasMore(response.data.next !== null);
@@ -103,26 +103,21 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
       console.error('Error fetching search results:', error);
     }
   };
-// Scroll to the message when clicked
-const handleScrollToMessage = (messageTimestamp) => {
-  setSelectedMessageId(messageTimestamp);
-  const messageElement = document.getElementById(`message-${messageTimestamp}`);
-  
-  // Ensure the message element exists and the scroll area reference is available
-  if (messageElement && scrollRef.current) {
-    const scrollArea = scrollRef.current;
-    
-    // Calculate the position of the message element relative to the scroll area
-    const scrollTop = messageElement.offsetTop - scrollArea.scrollTop;
 
-    // Scroll the scroll area viewport to the calculated position
-    scrollArea.scrollTo({
-      top: scrollTop,
-      behavior: 'smooth',
-    });
-  }
-};
+  // Scroll to the message when clicked
+  const handleScrollToMessage = (messageTimestamp) => {
+    setSelectedMessageId(messageTimestamp);
+    const messageElement = document.getElementById(`message-${messageTimestamp}`);
 
+    if (messageElement && scrollRef.current) {
+      const scrollArea = scrollRef.current;
+      const scrollTop = messageElement.offsetTop - scrollArea.scrollTop;
+      scrollArea.scrollTo({
+        top: scrollTop,
+        behavior: 'smooth',
+      });
+    }
+  };
 
   // Handle channel selection
   useEffect(() => {
@@ -150,55 +145,103 @@ const handleScrollToMessage = (messageTimestamp) => {
 
   // Load more messages when reaching the top
   const handleScroll = () => {
-      if (scrollRef.current.scrollTop === 0 && hasMore) {
-        setPage((prevPage) => prevPage + 1);
-      }
-  };
-
-
-  // Handle sending a file through Ably
-  const sendFile = async (file) => {
-    if (selectedChannel && file) {
-      const channel = ably.channels.get(selectedChannel.group_name);
-      const reader = new FileReader();
-
-      reader.onload = async (e) => {
-        const fileData = e.target.result;
-        channel.publish({ name: 'file-transfer', data: { fileName: file.name, fileData } });
-      };
-
-      reader.readAsDataURL(file); // Convert file to base64 for transfer
+    if (scrollRef.current.scrollTop === 0 && hasMore) {
+      setPage((prevPage) => prevPage + 1);
     }
   };
 
-  // Handle receiving a file
-  const handleFileReceived = (message) => {
-    const { fileName, fileData } = message.data;
-    const fileBlob = new Blob([fileData], { type: 'application/octet-stream' });
-    saveAs(fileBlob, fileName); // Automatically download the received file
+  // Function to convert Base64 string to ArrayBuffer
+  const base64ToArrayBuffer = (base64) => {
+    const binaryString = atob(base64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i += 1) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes.buffer;
   };
-  
+
   // Ably subscription for real-time messages
   useEffect(() => {
     if (!selectedChannel || !ably) return;
 
-    const channel = ably.channels.get(selectedChannel.group_name);
+    const channelName = selectedChannel.group_name;
+    const channel = ably.channels.get(channelName);
 
     const onMessage = (message) => {
-      const newMessage = {
-        clientId: message.clientId || message.connectionId,
-        data: message.data,
-        timestamp: message.timestamp || new Date().toISOString(),
-      };
-      setMessages((prevMessages) => [...prevMessages, newMessage]);
+      if (message.name === 'new-message') {
+        const newMessage = {
+          clientId: message.clientId || message.connectionId,
+          data: message.data,
+          timestamp: message.timestamp || new Date().toISOString(),
+          type: 'text',
+        };
+        setMessages((prevMessages) => [...prevMessages, newMessage]);
+      } else if (message.name === 'file-transfer') {
+        const [fileName, fileType, base64Data, chunkIndex, totalChunks, fileId] = message.data;
+
+        setFileTransfers((prevTransfers) => {
+          const transfer = prevTransfers[fileId] || {
+            fileName,
+            fileType,
+            totalChunks: Number(totalChunks),
+            chunks: {},
+            clientId: message.clientId || message.connectionId,
+            timestamp: message.timestamp || new Date().toISOString(),
+          };
+
+          transfer.chunks[Number(chunkIndex)] = base64Data;
+
+          // Check if all chunks have been received
+          if (Object.keys(transfer.chunks).length === transfer.totalChunks) {
+            // Assemble the file
+            const chunkKeys = Object.keys(transfer.chunks)
+              .map(Number)
+              .sort((a, b) => a - b);
+            const completeBase64Data = chunkKeys
+              .map((key) => transfer.chunks[key])
+              .join('');
+
+            const arrayBuffer = base64ToArrayBuffer(completeBase64Data);
+            const blob = new Blob([arrayBuffer], { type: transfer.fileType });
+            const blobUrl = URL.createObjectURL(blob);
+
+            // Create a new message with the assembled file
+            const newMessage = {
+              clientId: transfer.clientId,
+              data: {
+                fileName: transfer.fileName,
+                fileType: transfer.fileType,
+                fileUrl: blobUrl,
+              },
+              timestamp: transfer.timestamp,
+              type: 'file', // Custom type for assembled file
+            };
+
+            setMessages((prevMessages) => [...prevMessages, newMessage]);
+
+            // Clean up the completed transfer
+            const { [fileId]: _, ...restTransfers } = prevTransfers;
+            return restTransfers;
+          } else {
+            return {
+              ...prevTransfers,
+              [fileId]: transfer,
+            };
+          }
+        });
+      }
     };
 
     channel.subscribe(onMessage);
 
     return () => {
       channel.unsubscribe(onMessage);
+      channel.detach(() => {
+        ably.channels.release(channelName);
+      });
     };
-  }, [selectedChannel, ably]);
+  }, [selectedChannel?.group_name, ably]);
 
   // Send message
   const sendMessage = () => {
@@ -208,6 +251,79 @@ const handleScrollToMessage = (messageTimestamp) => {
       setMessageText('');
     }
   };
+
+  const MAX_BYTE_SIZE = 45000; // A safer limit for file chunks after Base64 encoding
+
+  const arrayBufferToBase64 = (buffer) => {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i += 5000) {
+      const chunk = bytes.subarray(i, i + 5000);
+      binary += String.fromCharCode.apply(null, chunk);
+    }
+    return btoa(binary);
+  };
+
+  const sendFileInChunks = async (file) => {
+    if (selectedChannel && file) {
+      const channel = ably.channels.get(selectedChannel.group_name);
+
+      // Check if the channel is attached before sending
+      if (channel.state !== 'attached') {
+        await channel.attach(); // Ensure channel is attached before sending
+      }
+
+      const arrayBuffer = await file.arrayBuffer();
+      const totalSize = arrayBuffer.byteLength;
+      const totalChunks = Math.ceil(totalSize / MAX_BYTE_SIZE);
+      const fileId = Date.now().toString(); // Generate a unique file ID
+
+      let chunkIndex = 0;
+      let offset = 0;
+
+      while (offset < totalSize) {
+        const chunkSize = Math.min(MAX_BYTE_SIZE, totalSize - offset);
+        const chunk = arrayBuffer.slice(offset, offset + chunkSize);
+
+        const base64Chunk = arrayBufferToBase64(chunk);
+
+        try {
+          await channel.publish({
+            name: 'file-transfer',
+            data: [
+              file.name, // fileName
+              file.type, // fileType
+              base64Chunk, // Chunk data (Base64)
+              chunkIndex, // Current chunk index
+              totalChunks, // Total number of chunks
+              fileId, // Unique file identifier
+            ],
+          });
+          console.log(`Sent chunk ${chunkIndex + 1} of ${totalChunks}`);
+        } catch (error) {
+          console.error('Error sending chunk:', error);
+          return; // Stop sending if an error occurs
+        }
+
+        chunkIndex++;
+        offset += chunkSize;
+      }
+
+      console.log('All chunks sent!');
+    }
+  };
+
+  // Cleanup Blob URLs when component unmounts or messages change
+  useEffect(() => {
+    return () => {
+      messages.forEach((msg) => {
+        if (msg.type === 'file' && msg.data.fileUrl) {
+          URL.revokeObjectURL(msg.data.fileUrl);
+        }
+      });
+    };
+  }, [messages]);
 
   // Group messages by user and timestamp
   const groupedMessages = [];
@@ -223,7 +339,11 @@ const handleScrollToMessage = (messageTimestamp) => {
       (lastTime && messageTime - lastTime > messageGroupingThreshold);
 
     if (isNewGroup && currentGroup.length > 0) {
-      groupedMessages.push({ sender: lastSender, time: lastTime, messages: currentGroup });
+      groupedMessages.push({
+        sender: lastSender,
+        time: lastTime,
+        messages: currentGroup,
+      });
       currentGroup = [];
     }
 
@@ -232,27 +352,34 @@ const handleScrollToMessage = (messageTimestamp) => {
     currentGroup.push(msg);
 
     if (index === messages.length - 1) {
-      groupedMessages.push({ sender: senderEmail, time: messageTime, messages: currentGroup });
+      groupedMessages.push({
+        sender: senderEmail,
+        time: messageTime,
+        messages: currentGroup,
+      });
     }
   });
 
   // Derive channel name based on members (excluding current user) if private
   const getChannelName = () => {
     if (!channelInfo || !channelInfo.is_private) {
-      return channelInfo?.groupchat_name || "Unknown Channel";
+      return channelInfo?.groupchat_name || 'Unknown Channel';
     }
 
-    const otherMembers = channelInfo.members?.filter(member => member.user !== currentUserEmail);
-    if (otherMembers.length === 0) return "Private Chat";
+    const otherMembers = channelInfo.members?.filter(
+      (member) => member.user !== currentUserEmail
+    );
+    if (otherMembers.length === 0) return 'Private Chat';
 
     const otherMember = otherMembers[0];
     return otherMember.nickname || otherMember.name || otherMember.user;
   };
+
   const toggleDrawer = () => {
     setDrawerOpened(!drawerOpened); // Toggle the drawer on and off
   };
+
   const toggleSearchDrawer = () => {
-    console.log(searchDrawerOpen)
     setSearchDrawerOpen(!searchDrawerOpen);
   };
 
@@ -266,7 +393,6 @@ const handleScrollToMessage = (messageTimestamp) => {
   };
 
   const updateNickname = async (groupName, memberEmail, newNickname) => {
-    console.log(memberEmail + newNickname)
     try {
       await axios.put(
         `${apiBaseUrl}/api/v1/membership/${groupName}/`,
@@ -307,7 +433,9 @@ const handleScrollToMessage = (messageTimestamp) => {
           style={{
             width: '300px',
             backgroundColor: colorScheme === 'dark' ? '#2C2C2C' : '#FFFFFF',
-            borderRight: `1px solid ${colorScheme === 'dark' ? '#4F4F4F' : '#E0E0E0'}`,
+            borderRight: `1px solid ${
+              colorScheme === 'dark' ? '#4F4F4F' : '#E0E0E0'
+            }`,
             padding: '1rem',
             height: '100%',
           }}
@@ -364,7 +492,9 @@ const handleScrollToMessage = (messageTimestamp) => {
                 toggleSearchDrawer={toggleSearchDrawer}
               />
             ) : (
-              <Text style={{ color: colorScheme === 'dark' ? '#ffffff' : '#000' }}>Loading...</Text>
+              <Text style={{ color: colorScheme === 'dark' ? '#ffffff' : '#000' }}>
+                Loading...
+              </Text>
             )}
 
             {/* Search Drawer */}
@@ -401,6 +531,7 @@ const handleScrollToMessage = (messageTimestamp) => {
               setMessageText={setMessageText}
               sendMessage={sendMessage}
               colorScheme={colorScheme}
+              sendFile={sendFileInChunks}
             />
           </Box>
         )}
