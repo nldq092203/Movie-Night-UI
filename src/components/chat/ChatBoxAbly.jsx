@@ -13,9 +13,10 @@ import MessagesList from './MessagesList';
 import ChatInput from './ChatInput';
 import RightSidebar from './RightSidebar';
 import SearchDrawer from './SearchDrawer';
-import { uploadFileToFirebase } from '../../utils/firebase';
+import { storage } from './firebase';
 
 dayjs.extend(relativeTime);
+
 const ChatBox = ({ clientId, theme, toggleTheme }) => {
   const colorScheme = theme.colorScheme;
   const ably = useAbly();
@@ -25,7 +26,7 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
   const [hasMore, setHasMore] = useState(true);
   const currentUserEmail = clientId;
   const scrollRef = useRef(null);
-  const messageGroupingThreshold = 5 * 60 * 1000; 
+  const messageGroupingThreshold = 5 * 60 * 1000; // 5 minutes
   const [selectedChannel, setSelectedChannel] = useState(null);
   const [channelInfo, setChannelInfo] = useState(null);
   const [drawerOpened, setDrawerOpened] = useState(false);
@@ -34,6 +35,7 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
   const [searchResults, setSearchResults] = useState([]);
   const [selectedMessageId, setSelectedMessageId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [fileTransfers, setFileTransfers] = useState(''); // State for ongoing file transfers
 
   // Fetch channel details
   const fetchChatGroupDetail = async (channelName) => {
@@ -67,30 +69,14 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
           params: { page: pageNumber },
         }
       );
-      
+
       if (Array.isArray(response.data.results)) {
-        console.log(fetchMessages.length)
-        const fetchedMessages = response.data.results.map((msg) => {
-          if (msg.file_url) {
-            return {
-              clientId: msg.author,
-              data: [
-                msg.file_name, //fileName
-                msg.file_type, //fileType
-                msg.file_url, //fileUrl
-              ],
-              timestamp: msg.created,
-              type: 'file',
-            };
-          } else {
-            return {
-              clientId: msg.author,
-              data: msg.body,
-              timestamp: msg.created,
-              type: 'text',
-            };
-          }
-        });
+        const fetchedMessages = response.data.results.map((msg) => ({
+          clientId: msg.author,
+          data: msg.body,
+          timestamp: msg.created,
+          type: 'text', // Assuming historical messages are text
+        }));
         setMessages((prevMessages) => [...fetchedMessages.reverse(), ...prevMessages]);
         setHasMore(response.data.next !== null);
       } else {
@@ -119,13 +105,6 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
     }
   };
 
-    // Load more messages when reaching the top
-    const handleScroll = () => {
-      if (scrollRef.current.scrollTop === 0 && hasMore) {
-        setPage((prevPage) => prevPage + 1);
-      }
-    };
-
   // Scroll to the message when clicked
   const handleScrollToMessage = (messageTimestamp) => {
     setSelectedMessageId(messageTimestamp);
@@ -140,14 +119,7 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
       });
     }
   };
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: 'auto', // Use 'smooth' for smooth scrolling
-      });
-    }
-  }, [messages]);
+
   // Handle channel selection
   useEffect(() => {
     if (selectedChannel) {
@@ -165,6 +137,31 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
     }
   }, [page, selectedChannel]);
 
+  // Handle auto-scroll to the bottom
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  // Load more messages when reaching the top
+  const handleScroll = () => {
+    if (scrollRef.current.scrollTop === 0 && hasMore) {
+      setPage((prevPage) => prevPage + 1);
+    }
+  };
+
+  // Function to convert Base64 string to ArrayBuffer
+  const base64ToArrayBuffer = (base64) => {
+    const binaryString = atob(base64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i += 1) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes.buffer;
+  };
+
   // Ably subscription for real-time messages
   useEffect(() => {
     if (!selectedChannel || !ably) return;
@@ -173,31 +170,68 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
     const channel = ably.channels.get(channelName);
 
     const onMessage = (message) => {
-      let newMessage;
-      const msgData = message.data;
-
       if (message.name === 'new-message') {
-        newMessage = {
+        const newMessage = {
           clientId: message.clientId || message.connectionId,
-          data: msgData,
+          data: message.data,
           timestamp: message.timestamp || new Date().toISOString(),
           type: 'text',
         };
-      } else if (message.name === 'new-file') {
-        newMessage = {
-          clientId: message.clientId || message.connectionId,
-          data: [
-            msgData[0], // file_name
-            msgData[1], // file_type
-            msgData[2], // file_url
-          ],
-          timestamp: message.timestamp || new Date().toISOString(),
-          type: 'file',
-        };
-      }
-
-      if (newMessage) {
         setMessages((prevMessages) => [...prevMessages, newMessage]);
+      } else if (message.name === 'file-transfer') {
+        const [fileName, fileType, base64Data, chunkIndex, totalChunks, fileId] = message.data;
+
+        setFileTransfers((prevTransfers) => {
+          const transfer = prevTransfers[fileId] || {
+            fileName,
+            fileType,
+            totalChunks: Number(totalChunks),
+            chunks: {},
+            clientId: message.clientId || message.connectionId,
+            timestamp: message.timestamp || new Date().toISOString(),
+          };
+
+          transfer.chunks[Number(chunkIndex)] = base64Data;
+
+          // Check if all chunks have been received
+          if (Object.keys(transfer.chunks).length === transfer.totalChunks) {
+            // Assemble the file
+            const chunkKeys = Object.keys(transfer.chunks)
+              .map(Number)
+              .sort((a, b) => a - b);
+            const completeBase64Data = chunkKeys
+              .map((key) => transfer.chunks[key])
+              .join('');
+
+            const arrayBuffer = base64ToArrayBuffer(completeBase64Data);
+            const blob = new Blob([arrayBuffer], { type: transfer.fileType });
+            const blobUrl = URL.createObjectURL(blob);
+
+            // Create a new message with the assembled file
+            const newMessage = {
+              clientId: transfer.clientId,
+              data: {
+                fileName: transfer.fileName,
+                fileType: transfer.fileType,
+                fileUrl: blobUrl,
+              },
+              timestamp: transfer.timestamp,
+              type: 'file', // Custom type for assembled file
+            };
+            
+
+            setMessages((prevMessages) => [...prevMessages, newMessage]);
+
+            // Clean up the completed transfer
+            const { [fileId]: _, ...restTransfers } = prevTransfers;
+            return restTransfers;
+          } else {
+            return {
+              ...prevTransfers,
+              [fileId]: transfer,
+            };
+          }
+        });
       }
     };
 
@@ -205,20 +239,30 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
 
     return () => {
       channel.unsubscribe(onMessage);
-      channel.detach((err) => {
-        if (err) {
-          console.error("Error detaching channel:", err);
-        } else {
-          console.log(`Detached from ${channelName}`);
-        }
+      channel.detach(() => {
+        ably.channels.release(channelName);
       });
-      ably.channels.release(channelName);
     };
-  }, [selectedChannel, ably]);
+  }, [selectedChannel?.group_name, ably]);
+
+  const uploadBlobToFirebase = async (blob, fileName) => {
+    try {
+      const storageRef = storage.ref();
+      const uniqueFileName = `${Date.now()}_${fileName}`;
+      const fileRef = storageRef.child(`chat_files/${uniqueFileName}`);
   
+      // Upload the Blob to Firebase
+      await fileRef.put(blob);
+  
+      // Get and return the download URL
+      return await fileRef.getDownloadURL();
+    } catch (error) {
+      console.error('Error uploading file to Firebase:', error);
+      throw error;
+    }
+  };
 
-
-  // Send text message
+  // Send message
   const sendMessage = () => {
     if (messageText.trim() && selectedChannel) {
       const channel = ably.channels.get(selectedChannel.group_name);
@@ -227,28 +271,65 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
     }
   };
 
-  // Send file message via API
-  const sendFileMessage = async (fileTransfers) => {
-    if (selectedChannel && fileTransfers) {
-      try {
-        const channel = ably.channels.get(selectedChannel.group_name);
+  const MAX_BYTE_SIZE = 45000; // A safer limit for file chunks after Base64 encoding
 
-        // Upload file to Firebase
-        const fileUrl = await uploadFileToFirebase(fileTransfers);
+  const arrayBufferToBase64 = (buffer) => {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i += 5000) {
+      const chunk = bytes.subarray(i, i + 5000);
+      binary += String.fromCharCode.apply(null, chunk);
+    }
+    return btoa(binary);
+  };
 
-        // Prepare message data
-        const fileMessageData = [
-          fileTransfers.name,
-          fileTransfers.type,
-          fileUrl,
-        ];
+  const sendFileInChunks = async (file) => {
+    if (selectedChannel && file) {
+      const channel = ably.channels.get(selectedChannel.group_name);
 
-        // Publish the file message
-        channel.publish({ name: 'new-file', data: fileMessageData });
-        console.log("File transfer: " + fileMessageData)
-      } catch (error) {
-        console.error('Error sending file message:', error);
+      // Check if the channel is attached before sending
+      if (channel.state !== 'attached') {
+        await channel.attach(); // Ensure channel is attached before sending
       }
+
+      const arrayBuffer = await file.arrayBuffer();
+      const totalSize = arrayBuffer.byteLength;
+      const totalChunks = Math.ceil(totalSize / MAX_BYTE_SIZE);
+      const fileId = Date.now().toString(); // Generate a unique file ID
+
+      let chunkIndex = 0;
+      let offset = 0;
+
+      while (offset < totalSize) {
+        const chunkSize = Math.min(MAX_BYTE_SIZE, totalSize - offset);
+        const chunk = arrayBuffer.slice(offset, offset + chunkSize);
+
+        const base64Chunk = arrayBufferToBase64(chunk);
+
+        try {
+          await channel.publish({
+            name: 'file-transfer',
+            data: [
+              file.name, // fileName
+              file.type, // fileType
+              base64Chunk, // Chunk data (Base64)
+              chunkIndex, // Current chunk index
+              totalChunks, // Total number of chunks
+              fileId, // Unique file identifier
+            ],
+          });
+          console.log(`Sent chunk ${chunkIndex + 1} of ${totalChunks}`);
+        } catch (error) {
+          console.error('Error sending chunk:', error);
+          return; // Stop sending if an error occurs
+        }
+
+        chunkIndex++;
+        offset += chunkSize;
+      }
+
+      console.log('All chunks sent!');
     }
   };
 
@@ -301,7 +382,7 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
   // Derive channel name based on members (excluding current user) if private
   const getChannelName = () => {
     if (!channelInfo || !channelInfo.is_private) {
-      return channelInfo?.groupchat_name;
+      return channelInfo?.groupchat_name || 'Unknown Channel';
     }
 
     const otherMembers = channelInfo.members?.filter(
@@ -330,7 +411,6 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
     return dayjs(timestamp).fromNow(); // Use dayjs to format the timestamp
   };
 
-  // Update nickname and refresh channel info
   const updateNickname = async (groupName, memberEmail, newNickname) => {
     try {
       await axios.put(
@@ -343,7 +423,6 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
         }
       );
       console.log('Nickname updated successfully');
-      await fetchChatGroupDetail(selectedChannel.group_name); 
     } catch (error) {
       console.error('Failed to update nickname:', error);
     }
@@ -385,7 +464,6 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
             theme={theme}
             clientId={clientId}
             onSelectChannel={setSelectedChannel}
-            getChannelName={getChannelName}
           />
         </Box>
 
@@ -472,7 +550,7 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
               setMessageText={setMessageText}
               sendMessage={sendMessage}
               colorScheme={colorScheme}
-              sendFile={sendFileMessage} 
+              sendFile={sendFileInChunks}
             />
           </Box>
         )}

@@ -4,7 +4,7 @@ import { IconDownload } from '@tabler/icons-react';
 
 const MessageBubble = ({ msg, isCurrentUser, isSelected, colorScheme }) => {
   const isFileMessage = msg.type === 'file';
-  const isImage = isFileMessage && msg.data.fileType?.startsWith('image/');
+  const isImage = isFileMessage && msg.data[1]?.startsWith('image/');
 
   return (
     <>
@@ -12,8 +12,8 @@ const MessageBubble = ({ msg, isCurrentUser, isSelected, colorScheme }) => {
         isImage ? (
           <Image
             className="m-2"
-            src={msg.data.fileUrl}
-            alt={msg.data.fileName}
+            src={msg.data[2]}
+            alt={msg.data[0]}
             radius="md"
             style={{
               maxWidth: '100%',
@@ -24,11 +24,20 @@ const MessageBubble = ({ msg, isCurrentUser, isSelected, colorScheme }) => {
         ) : (
           // Display download link for non-image files
           <Box style={{ display: 'flex', alignItems: 'center' }}>
-            <Text>{msg.data.fileName}</Text>
+            <Text             
+            size="sm"
+            style={{
+              wordWrap: 'break-word',
+              color: colorScheme === 'dark' ? '#ffffff' : '#000000',
+            }}>
+              {msg.data[0]}
+            </Text>
             <ActionIcon
               component="a"
-              href={msg.data.fileUrl}
-              download={msg.data.fileName}
+              href={msg.data[2]}
+              download={msg.data[0]}
+              target="_blank"
+              rel="noopener noreferrer"
               variant="outline"
               color="blue"
               size="sm"

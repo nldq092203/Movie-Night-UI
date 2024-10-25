@@ -5,7 +5,7 @@ import axios from 'axios';
 import { apiBaseUrl } from '../../config';
 import ChannelItem from './ChannelItem.jsx';
 
-const ChatChannelList = ({ currentUserEmail, theme, clientId, onSelectChannel }) => {
+const ChatChannelList = ({ currentUserEmail, theme, clientId, onSelectChannel, getChannelName }) => {
   const [channels, setChannels] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const accessToken = localStorage.getItem('access_token');
@@ -80,6 +80,7 @@ const ChatChannelList = ({ currentUserEmail, theme, clientId, onSelectChannel })
             .filter((channel) => channel)
             .map((channel) => (
                 <ChannelItem
+                getChannelName={() => getChannelName(channel)} 
                 key={channel.group_name}
                 channel={channel}
                 onSelectChannel={onSelectChannel}

@@ -2,10 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Avatar, Group, Text, Divider, Badge } from '@mantine/core';
 import { useAbly } from 'ably/react';
 
-const ChannelItem = ({ currentUserEmail, clientId, channel, onSelectChannel }) => {
+const ChannelItem = ({currentUserEmail, clientId, channel, onSelectChannel, getChannelName }) => {
   if (!channel) {
     return null;
   }
+  const otherMembers = channel.members?.filter(
+    (member) => member.user !== currentUserEmail
+  );
+
+  const otherMember = otherMembers[0];
+  const nameChannel = channel.groupchat_name || otherMember.nickname || otherMember.name || otherMember.user;
 
   const [lastMessageContent, setLastMessageContent] = useState(
     channel.last_message_content || 'No messages yet...'
@@ -16,6 +22,7 @@ const ChannelItem = ({ currentUserEmail, clientId, channel, onSelectChannel }) =
 
   const ably = useAbly();
 
+  
   useEffect(() => {
     if (!group_name || !ably) return;
 
@@ -23,8 +30,8 @@ const ChannelItem = ({ currentUserEmail, clientId, channel, onSelectChannel }) =
 
     const onMessage = (message) => {
       console.log('Received message on channel', group_name, ':', message);
-
-      const newLastMessageContent = message.data || 'No messages yet...';
+      
+      let newLastMessageContent = message.name === 'new-message' ? message.data : 'Attachment sent';
 
       setLastMessageContent(newLastMessageContent);
       if(message.clientId != clientId){
@@ -47,17 +54,6 @@ const ChannelItem = ({ currentUserEmail, clientId, channel, onSelectChannel }) =
     // Reset unread message count after the user selects the channel
     setUnreadCount(0);
   };
-  const getChannelName = () => {
-    if (!channel || !channel.is_private) {
-      return channel?.groupchat_name || "Unknown Channel";
-    }
-
-    const otherMembers = channel.members?.filter(member => member.user !== currentUserEmail);
-    if (otherMembers.length === 0) return "Private Chat";
-
-    const otherMember = otherMembers[0];
-    return otherMember.nickname || otherMember.name || otherMember.user;
-  };
   return (
     <div
       onClick={handleChannelClick}
@@ -74,7 +70,7 @@ const ChannelItem = ({ currentUserEmail, clientId, channel, onSelectChannel }) =
           <Avatar src={channel.avatar || ''} radius="xl" />
           <div>
             <Text fw={unreadCount > 0 ? 900 : 700}>
-              {getChannelName()}
+              {getChannelName() || nameChannel}
             </Text>
             <Text size="xs" c="dimmed">
               {lastMessageContent}

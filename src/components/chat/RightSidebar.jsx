@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Drawer, Flex, Avatar, Text, Divider, Group, Box, ActionIcon, Accordion, Modal, Button, Input } from '@mantine/core';
 import { IconUser, IconSearch, IconEdit } from '@tabler/icons-react';
 import { Link } from 'react-router-dom'; 
+
 const RightSidebar = ({
   channelInfo,
   drawerOpened,
@@ -43,6 +44,8 @@ const RightSidebar = ({
       position="right"
       size="400px"
       padding="xl"
+      aria-hidden={!drawerOpened}
+      inert={!drawerOpened ? "true" : undefined}  // Add inert when closed
       styles={{
         drawer: {
           backgroundColor: drawerBackgroundColor,

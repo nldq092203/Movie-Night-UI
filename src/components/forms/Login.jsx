@@ -92,7 +92,7 @@ function Login() {
             onChange={(e) =>
               setCredentials({ ...credentials, email: e.target.value })
             }
-            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400 text-gray-700"
+            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white text-black"
             required
           />
         </div>
@@ -109,7 +109,7 @@ function Login() {
             onChange={(e) =>
               setCredentials({ ...credentials, password: e.target.value })
             }
-            className="w-full px-4 py-2 text-gray-700 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="w-full px-4 py-2 text-gray-700 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white text-black"
             required
           />
         </div>
@@ -121,9 +121,9 @@ function Login() {
               type="checkbox"
               checked={showPassword}
               onChange={toggleShowPassword}
-              className="form-checkbox"
+              className="form-checkbox bg-white text-black"
             />
-            <span className="ml-2 text-gray-700">Show Password</span>
+            <span className="ml-2 bg-white text-black">Show Password</span>
           </label>
         </div>
 
