@@ -39,7 +39,7 @@ function NotificationDropdown({ theme }) {
 
       const data = await response.json();
       setNotifications(data.results || []);
-      // console.log(data.results)
+      console.log(data.results)
       setunseenCount(data.unseenCount || 0);
 
     } catch (err) {
@@ -225,7 +225,7 @@ function NotificationDropdown({ theme }) {
                         >
                           <div className="flex items-center">
                             <img
-                              src=""
+                              src={notification.sender_avtar_url || 'https://http.cat/404'}
                               alt="User"
                               className="rounded-full h-8 w-8 mr-2"
                             />
@@ -256,7 +256,7 @@ function NotificationDropdown({ theme }) {
                         >
                           <div className="flex items-center">
                             <img
-                              src=""
+                              src={notification.sender_avtar_url || 'https://http.cat/404'}
                               alt="User"
                               className="rounded-full h-8 w-8 mr-2"
                             />

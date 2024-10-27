@@ -16,6 +16,7 @@ import SearchDrawer from './SearchDrawer';
 import { uploadFileToFirebase } from '../../utils/firebase';
 
 dayjs.extend(relativeTime);
+
 const ChatBox = ({ clientId, theme, toggleTheme }) => {
   const colorScheme = theme.colorScheme;
   const ably = useAbly();
@@ -69,15 +70,14 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
       );
       
       if (Array.isArray(response.data.results)) {
-        console.log(fetchMessages.length)
         const fetchedMessages = response.data.results.map((msg) => {
           if (msg.file_url) {
             return {
               clientId: msg.author,
               data: [
-                msg.file_name, //fileName
-                msg.file_type, //fileType
-                msg.file_url, //fileUrl
+                msg.file_name,
+                msg.file_type,
+                msg.file_url,
               ],
               timestamp: msg.created,
               type: 'file',
@@ -119,12 +119,12 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
     }
   };
 
-    // Load more messages when reaching the top
-    const handleScroll = () => {
-      if (scrollRef.current.scrollTop === 0 && hasMore) {
-        setPage((prevPage) => prevPage + 1);
-      }
-    };
+  // Load more messages when reaching the top
+  const handleScroll = () => {
+    if (scrollRef.current.scrollTop === 0 && hasMore) {
+      setPage((prevPage) => prevPage + 1);
+    }
+  };
 
   // Scroll to the message when clicked
   const handleScrollToMessage = (messageTimestamp) => {
@@ -140,14 +140,16 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
       });
     }
   };
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTo({
         top: scrollRef.current.scrollHeight,
-        behavior: 'auto', // Use 'smooth' for smooth scrolling
+        behavior: 'auto',
       });
     }
   }, [messages]);
+
   // Handle channel selection
   useEffect(() => {
     if (selectedChannel) {
@@ -187,9 +189,9 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
         newMessage = {
           clientId: message.clientId || message.connectionId,
           data: [
-            msgData[0], // file_name
-            msgData[1], // file_type
-            msgData[2], // file_url
+            msgData[0],
+            msgData[1],
+            msgData[2],
           ],
           timestamp: message.timestamp || new Date().toISOString(),
           type: 'file',
@@ -210,13 +212,11 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
           console.error("Error detaching channel:", err);
         } else {
           console.log(`Detached from ${channelName}`);
+          ably.channels.release(channelName); // Release after detaching
         }
       });
-      ably.channels.release(channelName);
     };
   }, [selectedChannel, ably]);
-  
-
 
   // Send text message
   const sendMessage = () => {
@@ -245,7 +245,7 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
 
         // Publish the file message
         channel.publish({ name: 'new-file', data: fileMessageData });
-        console.log("File transfer: " + fileMessageData)
+        console.log("File transfer: " + fileMessageData);
       } catch (error) {
         console.error('Error sending file message:', error);
       }
@@ -299,15 +299,15 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
   });
 
   // Derive channel name based on members (excluding current user) if private
-  const getChannelName = () => {
-    if (!channelInfo || !channelInfo.is_private) {
-      return channelInfo?.groupchat_name;
+  const getChannelName = (channel) => {
+    if (!channel || !channel.is_private) {
+      return channel?.groupchat_name || 'Unknown Channel';
     }
 
-    const otherMembers = channelInfo.members?.filter(
+    const otherMembers = channel.members?.filter(
       (member) => member.user !== currentUserEmail
     );
-    if (otherMembers.length === 0) return 'Private Chat';
+    if (!otherMembers || otherMembers.length === 0) return 'Private Chat';
 
     const otherMember = otherMembers[0];
     return otherMember.nickname || otherMember.name || otherMember.user;
@@ -412,7 +412,7 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
             {/* Chat Header */}
             <ChatHeader
               selectedChannel={selectedChannel}
-              getChannelName={getChannelName}
+              getChannelName={() => getChannelName(selectedChannel)}
               colorScheme={colorScheme}
               toggleDrawer={toggleDrawer}
             />
@@ -428,7 +428,7 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
                 drawerBackgroundColor={drawerBackgroundColor}
                 textColor={textColor}
                 dimmedTextColor={dimmedTextColor}
-                getChannelName={getChannelName}
+                getChannelName={() => getChannelName(channelInfo)}
                 colorScheme={colorScheme}
                 toggleSearchDrawer={toggleSearchDrawer}
               />

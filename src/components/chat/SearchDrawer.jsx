@@ -66,8 +66,8 @@ const SearchDrawer = ({
                   <Avatar
                     src={
                       message.author === currentUserEmail
-                        ? 'https://i.pravatar.cc/300'
-                        : 'https://i.pravatar.cc/300?img=3'
+                        ? 'https://http.cat/404'
+                        : 'https://http.cat/404'
                     }
                     size="lg"
                     radius="xl"
