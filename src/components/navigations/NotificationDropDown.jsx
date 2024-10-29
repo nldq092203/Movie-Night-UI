@@ -39,7 +39,7 @@ function NotificationDropdown({ theme }) {
 
       const data = await response.json();
       setNotifications(data.results || []);
-      console.log(data.results)
+      // console.log(data.results)
       setunseenCount(data.unseenCount || 0);
 
     } catch (err) {

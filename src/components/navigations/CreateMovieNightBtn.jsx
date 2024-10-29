@@ -20,8 +20,9 @@ function CreateMovieNightBtn({ movieId, theme }) {
     try {
       const accessToken = localStorage.getItem('access_token');
       const now = new Date().toISOString();
+      console.log(movieId)
       const response = await axios.get(
-        `${apiBaseUrl}/api/v1/my-movie-nights/`,
+        `${apiBaseUrl}/api/v1/movies/${movieId}/my-movie-nights/`,
         {
           params: { 
             ordering: 'movieId',
@@ -31,6 +32,7 @@ function CreateMovieNightBtn({ movieId, theme }) {
         }
       );
       setMovieNights(response.data.results);
+      console.log(response.data.results)
     } catch (err) {
       console.error('Error fetching movie nights:', err);
       setError('Failed to fetch movie nights.');
@@ -46,7 +48,7 @@ function CreateMovieNightBtn({ movieId, theme }) {
       const accessToken = localStorage.getItem('access_token');
       const notificationInSeconds = convertDurationToSeconds(notificationTime);
       const response = await axios.post(
-        `${apiBaseUrl}/api/v1/my-movie-nights/`,
+        `${apiBaseUrl}/api/v1/movies/${movieId}/my-movie-nights/`,
         {
           movie: movieId,
           start_time: startTime,

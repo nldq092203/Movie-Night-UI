@@ -318,6 +318,7 @@ function MovieNightDetails({ theme, toggleTheme }) {
                   </Box>
                 }
               </Group>
+              {isCreator &&
               <Group mt="lg" spacing="sm">
                   <Button 
                   color="blue" 
@@ -344,6 +345,7 @@ function MovieNightDetails({ theme, toggleTheme }) {
                     Delete Movie Night
                   </Button>
               </Group>
+              }
             </Box>
           </Box>  
 

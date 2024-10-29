@@ -9,12 +9,12 @@ import { Box, Text } from '@mantine/core';
 
 function HomePage({ theme, toggleTheme }) {
   const [movies, setMovies] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1); // Manage current page
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [nextPageUrl, setNextPageUrl] = useState(`${apiBaseUrl}/api/v1/movies/`);
   const [hasMore, setHasMore] = useState(true);
   const [showHeader, setShowHeader] = useState(true);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const [filters, setFilters] = useState({
     genres: [],
@@ -29,59 +29,86 @@ function HomePage({ theme, toggleTheme }) {
   });
   const [ordering, setOrdering] = useState('');
 
-  const fetchMovies = async (url) => {
-    if (!url || loading) return;
+  const fetchMovies = async () => {
+    if (!hasMore || loading) return;
     setLoading(true);
     setError(null);
 
     try {
-      const response = await axios.get(url, {
-        params: {
-          genres: filters.genres.length > 0 ? filters.genres.join(',') : undefined,
-          country: filters.country,
-          year: filters.year,
-          runtime_minutes: filters.runtime,
-          imdb_rating_from: filters.imdb_rating_from,
-          runtime_minutes_from: filters.runtime_minutes_from,
-          runtime_minutes_to: filters.runtime_minutes_to,
-          ordering,
-          published_from: filters.published_from,
-          published_to: filters.published_to,
+      console.log('API Base URL:', apiBaseUrl);  
+      console.log("Fetching movies from:", `${apiBaseUrl}/api/v1/movies/`);
+
+      const params = {
+        genres: filters.genres.length > 0 ? filters.genres.join(',') : undefined,
+        country: filters.country,
+        year: filters.year,
+        runtime_minutes: filters.runtime_minutes,
+        imdb_rating_from: filters.imdb_rating_from,
+        runtime_minutes_from: filters.runtime_minutes_from,
+        runtime_minutes_to: filters.runtime_minutes_to,
+        ordering,
+        published_from: filters.published_from,
+        published_to: filters.published_to,
+        page: currentPage,
+      };
+
+      // Retrieve the access token from localStorage
+      const accessToken = localStorage.getItem('access_token');
+
+      const response = await axios.get(`${apiBaseUrl}/api/v1/movies/`, {
+        params,
+        headers: {
+          'Content-Type': 'application/json',
+          // Include the Authorization header if the access token exists
+          ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
         },
       });
 
       setMovies((prevMovies) => [...prevMovies, ...response.data.results]);
-      setNextPageUrl(response.data.next || null);
-      setHasMore(!!response.data.next);
+
+      if (response.data.next) {
+        setCurrentPage((prevPage) => prevPage + 1);
+      } else {
+        setHasMore(false);
+      }
     } catch (err) {
-      console.error(err);
-      setError('No results.');
+      console.error("Fetch error:", err);
+      if (err.response) {
+        setError('Failed to fetch movies.');
+      } else if (err.request) {
+        setError('Network error. Please try again.');
+      } else {
+        setError('An unexpected error occurred.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    // Reset on filter or ordering change
     setMovies([]);
-    setNextPageUrl(`${apiBaseUrl}/api/v1/movies/`);
+    setCurrentPage(1);
     setHasMore(true);
-    fetchMovies(`${apiBaseUrl}/api/v1/movies/`);
+    fetchMovies();
   }, [filters, ordering]);
 
+  // Infinite scroll
   const handleScroll = () => {
-    if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 100) {
-      if (!loading && hasMore) {
-        fetchMovies(nextPageUrl);
-      }
+    if (
+      window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 100 &&
+      !loading &&
+      hasMore
+    ) {
+      fetchMovies();
     }
-
     setShowHeader(document.documentElement.scrollTop <= 150);
   };
 
   useEffect(() => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [nextPageUrl, hasMore, loading]);
+  }, [hasMore, loading]);
 
   return (
     <div className={`min-h-screen relative px-1 py-5 ${theme.colorScheme === 'dark' ? 'bg-black text-white' : 'bg-gradient-to-br from-[#cdfcff] via-[#a5d0e7] via-[#bcd9e9] via-[#fff] to-[#95cbe7] text-black'}`}>
