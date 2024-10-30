@@ -55,6 +55,7 @@ const SearchDrawer = ({
                 onClick={() => {
                   toggleSearchDrawer();
                   handleScrollToMessage(message.created);
+                  console.log(message)
                 }}
                 style={{
                   padding: '0.5rem',

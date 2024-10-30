@@ -135,19 +135,86 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
     }
   };
 
-  // Scroll to the message when clicked
-  const handleScrollToMessage = (messageTimestamp) => {
-    setSelectedMessageId(messageTimestamp);
-    const messageElement = document.getElementById(`message-${messageTimestamp}`);
-
-    if (messageElement && scrollRef.current) {
-      const scrollArea = scrollRef.current;
-      const scrollTop = messageElement.offsetTop - scrollArea.scrollTop;
-      scrollArea.scrollTo({
-        top: scrollTop,
-        behavior: 'smooth',
-      });
+  const fetchAllPages = async (url) => {
+    let currentUrl = url;
+    let currentPage = page + 1
+  
+    try {
+      while (currentUrl) {
+        console.log("Current Url: " + currentUrl)
+        console.log("CurrentPage: " + currentPage)
+        const response = await axios.get(currentUrl, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+          },
+        });
+        console.log(response.data.results);
+  
+        if (Array.isArray(response.data.results)) {
+          const fetchedMessages = response.data.results.map((msg) => {
+            if (msg.file_url) {
+              return {
+                clientId: msg.author,
+                data: [
+                  msg.file_name,
+                  msg.file_type,
+                  msg.file_url,
+                ],
+                timestamp: msg.created,
+                type: 'file',
+              };
+            } else {
+              return {
+                clientId: msg.author,
+                data: msg.body,
+                timestamp: msg.created,
+                type: 'text',
+              };
+            }
+          });
+    
+          // Reverse the fetched messages to maintain chronological order
+          fetchedMessages.reverse();
+    
+          // Update messages state
+          setMessages((prevMessages) => [...fetchedMessages, ...prevMessages]);
+        }
+        currentUrl = response.data.next; // Update to the next page URL
+        setPage(++currentPage);
+      }
+    } catch (error) {
+      console.error('Error fetching all message pages:', error);
     }
+  };
+
+  const fetchAllMessagesFromTimestamp = async (timestamp) => {
+    const createdFrom = new Date(timestamp).toISOString();
+    const initialUrl = `${apiBaseUrl}/api/v1/chat-group/${selectedChannel.group_name}/messages/?created_from=${createdFrom}&page=${page + 1}`;
+    await fetchAllPages(initialUrl);
+  };
+  
+  // Scroll to the message when clicked
+  const handleScrollToMessage = async (messageTimestamp) => {
+    setSelectedMessageId(messageTimestamp);
+  
+    // Wait for the state update and re-render to complete
+    setTimeout(() => {
+      const messageElement = document.getElementById(`message-${messageTimestamp}`);
+      const scrollContainer = scrollRef.current;
+  
+      if (messageElement && scrollContainer) {
+        const messagePosition = messageElement.offsetTop - scrollContainer.offsetTop;
+  
+        // Smoothly scroll within the chatbox only
+        scrollContainer.scrollTo({
+          top: messagePosition,
+          behavior: 'smooth',
+        });
+      } else {
+        // If the message is not found, fetch the necessary page
+        fetchAllMessagesFromTimestamp(messageTimestamp);
+      }
+    }, 0);
   };
 
   useEffect(() => {
@@ -479,6 +546,7 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
               fetchMoreMessages={fetchMoreMessages}
               hasMore={hasMore}
               loading={loading}
+              scrollRef={scrollRef}
             />
 
             {/* Chat Input */}

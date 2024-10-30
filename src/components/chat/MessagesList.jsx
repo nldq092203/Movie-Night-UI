@@ -10,30 +10,24 @@ const MessagesList = ({
   fetchMoreMessages,
   hasMore,
   loading,
+  scrollRef
 }) => {
-  const viewport = useRef(null);
-
-  // Handle scroll event
   const handleScroll = () => {
-    if (viewport.current) {
-      const scrollPosition = viewport.current.scrollTop;
-      if (scrollPosition === 0 && hasMore) {
-        fetchMoreMessages();
-      }
+    if (scrollRef.current && scrollRef.current.scrollTop === 0 && hasMore) {
+      fetchMoreMessages();
     }
   };
 
-  // Attach scroll event listener
+  // Attach the scroll event listener to `scrollRef`
   useEffect(() => {
-    if (viewport.current) {
-      viewport.current.addEventListener('scroll', handleScroll);
+    const ref = scrollRef.current;
+    if (ref) {
+      ref.addEventListener('scroll', handleScroll);
     }
     return () => {
-      if (viewport.current) {
-        viewport.current.removeEventListener('scroll', handleScroll);
-      }
+      if (ref) ref.removeEventListener('scroll', handleScroll);
     };
-  }, [viewport.current, handleScroll]);
+  }, [scrollRef, handleScroll]);
 
   // // Adjust scroll position when messages change
   // useEffect(() => {
@@ -44,11 +38,8 @@ const MessagesList = ({
 
   return (
     <ScrollArea
-      style={{
-        flex: 1,
-        padding: '1rem',
-      }}
-      viewportRef={viewport}
+      style={{ flex: 1, padding: '1rem', overflowY: 'auto' }}
+      viewportRef={scrollRef}
     >
       {loading && (
         <Box style={{ display: 'flex', justifyContent: 'center', padding: '1rem' }}>
