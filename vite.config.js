@@ -1,17 +1,20 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import dotenv from 'dotenv';
+import { config } from 'dotenv';
 
-dotenv.config(); // Load environment variables from .env
+config(); // Load environment variables from .env
 
 export default defineConfig({
+  define: {
+    'process.env': process.env
+  },
   plugins: [react()],
   build: {
-    outDir: 'dist',  // Output folder for Vite build
-    chunkSizeWarningLimit: 500  // Increase limit if you see chunk size warnings
+    outDir: 'dist',
+    chunkSizeWarningLimit: 500
   },
   server: {
-    port: 5173,  // Default port for dev
-    strictPort: true  // Ensures Vite fails if port 5173 is taken
+    port: 5173,
+    strictPort: true
   }
 });
