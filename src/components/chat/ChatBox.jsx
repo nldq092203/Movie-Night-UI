@@ -22,7 +22,7 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
   const ably = useAbly();
   const [messages, setMessages] = useState([]);
   const [messageText, setMessageText] = useState('');
-  const [page, setPage] = useState(null);
+  const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const currentUserEmail = clientId;
   const scrollRef = useRef(null);
@@ -56,8 +56,10 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
 
   // Fetch messages
   const fetchMessages = async (channelName, pageNumber) => {
-    if (!channelName || !pageNumber) return;
-
+    if (!channelName || !pageNumber || loading || !hasMore) return;
+  
+    setLoading(true);
+    console.log(pageNumber)
     try {
       const response = await axios.get(
         `${apiBaseUrl}/api/v1/chat-group/${channelName}/messages/`,
@@ -68,7 +70,7 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
           params: { page: pageNumber },
         }
       );
-      
+  
       if (Array.isArray(response.data.results)) {
         const fetchedMessages = response.data.results.map((msg) => {
           if (msg.file_url) {
@@ -91,14 +93,21 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
             };
           }
         });
-        setMessages((prevMessages) => [...fetchedMessages.reverse(), ...prevMessages]);
+  
+        // Reverse the fetched messages to maintain chronological order
+        fetchedMessages.reverse();
+  
+        // Update messages state
+        setMessages((prevMessages) => [...fetchedMessages, ...prevMessages]);
+  
         setHasMore(response.data.next !== null);
       } else {
         console.error('Invalid data format:', response.data);
-        setMessages([]);
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -119,9 +128,9 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
     }
   };
 
-  // Load more messages when reaching the top
-  const handleScroll = () => {
-    if (scrollRef.current.scrollTop === 0 && hasMore) {
+
+  const fetchMoreMessages = () => {
+    if (selectedChannel && hasMore && !loading) {
       setPage((prevPage) => prevPage + 1);
     }
   };
@@ -142,13 +151,17 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
   };
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: 'auto',
-      });
+    if (scrollRef.current && !loading) {
+      const scrollElement = scrollRef.current;
+      // Only scroll to bottom if new messages are added to the end
+      if (messages.length > 0 && messages[messages.length - 1].clientId === currentUserEmail) {
+        scrollElement.scrollTo({
+          top: scrollElement.scrollHeight,
+          behavior: 'smooth',
+        });
+      }
     }
-  }, [messages]);
+  }, [messages, loading]);
 
   // Handle channel selection
   useEffect(() => {
@@ -156,6 +169,7 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
       setMessages([]);
       setChannelInfo(null);
       setPage(1);
+      setHasMore(true);
       fetchChatGroupDetail(selectedChannel.group_name);
     }
   }, [selectedChannel]);
@@ -462,8 +476,9 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
               selectedMessageId={selectedMessageId}
               currentUserEmail={currentUserEmail}
               colorScheme={colorScheme}
-              scrollRef={scrollRef}
-              handleScroll={handleScroll}
+              fetchMoreMessages={fetchMoreMessages}
+              hasMore={hasMore}
+              loading={loading}
             />
 
             {/* Chat Input */}

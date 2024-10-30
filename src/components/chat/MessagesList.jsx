@@ -1,6 +1,5 @@
-// MessagesList.js
-import React from 'react';
-import { Box, Text, Avatar, ScrollArea } from '@mantine/core';
+import React, { useEffect, useRef } from 'react';
+import { Box, Text, Avatar, ScrollArea, Loader } from '@mantine/core';
 import MessageBubble from './MessageBubble';
 
 const MessagesList = ({
@@ -8,22 +7,56 @@ const MessagesList = ({
   selectedMessageId,
   currentUserEmail,
   colorScheme,
-  scrollRef,
-  handleScroll,
+  fetchMoreMessages,
+  hasMore,
+  loading,
 }) => {
+  const viewport = useRef(null);
+
+  // Handle scroll event
+  const handleScroll = () => {
+    if (viewport.current) {
+      const scrollPosition = viewport.current.scrollTop;
+      if (scrollPosition === 0 && hasMore) {
+        fetchMoreMessages();
+      }
+    }
+  };
+
+  // Attach scroll event listener
+  useEffect(() => {
+    if (viewport.current) {
+      viewport.current.addEventListener('scroll', handleScroll);
+    }
+    return () => {
+      if (viewport.current) {
+        viewport.current.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [viewport.current, handleScroll]);
+
+  // // Adjust scroll position when messages change
+  // useEffect(() => {
+  //   if (viewport.current) {
+  //     viewport.current.scrollTop = viewport.current.scrollHeight;
+  //   }
+  // }, [groupedMessages]);
+
   return (
     <ScrollArea
       style={{
         flex: 1,
         padding: '1rem',
-        overflowY: 'auto',
       }}
-      onScroll={handleScroll}
-      viewportRef={scrollRef}
+      viewportRef={viewport}
     >
+      {loading && (
+        <Box style={{ display: 'flex', justifyContent: 'center', padding: '1rem' }}>
+          <Loader size="sm" />
+        </Box>
+      )}
       {groupedMessages.map((group, index) => {
         const isCurrentUser = group.sender === currentUserEmail;
-
         return (
           <Box
             key={index}
@@ -67,7 +100,7 @@ const MessagesList = ({
               {!isNaN(new Date(group.time)) && (
                 <Text
                   size="xs"
-                  c="dimmed"
+                  color="dimmed"
                   align={isCurrentUser ? 'right' : 'left'}
                   style={{ marginTop: '0.25rem' }}
                 >
