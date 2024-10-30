@@ -70,18 +70,21 @@ function MovieSearch({ theme, toggleTheme }) {
   // Handle pagination (fetch next or previous page)
   const fetchPage = async (url) => {
     if (!url) return;
-
+  
+    // Ensure the URL uses HTTPS
+    const secureUrl = url.startsWith('http:') ? url.replace(/^http:/, 'https:') : url;
+  
     setLoading(true);
     setError(null);
-
+  
     try {
-      const response = await axios.get(url);
+      const response = await axios.get(secureUrl);
       const data = response.data;
-
+  
       setResults(data.results);
       setNextPage(data.next);  // Update next page URL
       setPrevPage(data.previous);  // Update previous page URL
-
+  
       // Cache updated results and pagination in sessionStorage
       sessionStorage.setItem('results', JSON.stringify(data.results));
       sessionStorage.setItem('nextPage', data.next || '');

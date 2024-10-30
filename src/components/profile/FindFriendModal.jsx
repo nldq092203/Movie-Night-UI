@@ -13,7 +13,7 @@ const FindFriendModal = ({ findFriendOpen, setFindFriendOpen, friendEmail, setFr
           required
         />
         {findFriendError && (
-          <Text color="red" size="sm" mt="sm">
+          <Text c="red" size="sm" mt="sm">
             {findFriendError}
           </Text>
         )}

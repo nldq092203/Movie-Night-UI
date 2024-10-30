@@ -4,15 +4,20 @@ FROM node:18-alpine AS build
 # Set working directory
 WORKDIR /app
 
-# Install dependencies
+# Copy package.json and install dependencies
 COPY package*.json ./
 RUN npm install
 
-# Build the app
+# Copy app files
 COPY . .
+
+# Copy environment variables file into the build container
+COPY .env .env  
+
+# Build the app with Vite
 RUN npm run build
 
-# Serve with a lightweight server in the production stage
+# Serve the build with a lightweight server
 FROM node:18-alpine AS serve
 WORKDIR /app
 RUN npm install -g serve
