@@ -40,7 +40,7 @@ function MovieCard({ movie, theme }) {
           <Image
             src={movie.url_poster !== 'N/A' ? movie.url_poster : placeholderImage}
             alt={movie.title}
-            height={280}
+            h={280}
             radius="md"
             fit="cover"
           />
@@ -62,13 +62,13 @@ function MovieCard({ movie, theme }) {
           </Text>
           <Group position="center" spacing="xs" mt="xs">
             <FaStar color={isDarkMode ? '#fbbf24' : '#1e3a8a'} size={12} />
-            <Text size="sm" color={textColor}>
+            <Text size="sm" c={textColor}>
               {movie.imdb_rating}
             </Text>
-            <Text size="sm" color={textColor}>
+            <Text size="sm" c={textColor}>
               •
             </Text>
-            <Text size="sm" color={textColor}>
+            <Text size="sm" c={textColor}>
               {movie.year}
             </Text>
           </Group>

@@ -217,18 +217,18 @@ const ChatBox = ({ clientId, theme, toggleTheme }) => {
     }, 0);
   };
 
-  useEffect(() => {
-    if (scrollRef.current && !loading) {
-      const scrollElement = scrollRef.current;
-      // Only scroll to bottom if new messages are added to the end
-      if (messages.length > 0 && messages[messages.length - 1].clientId === currentUserEmail) {
-        scrollElement.scrollTo({
-          top: scrollElement.scrollHeight,
-          behavior: 'smooth',
-        });
-      }
-    }
-  }, [messages, loading]);
+  // useEffect(() => {
+  //   if (scrollRef.current && !loading) {
+  //     const scrollElement = scrollRef.current;
+  //     // Only scroll to bottom if new messages are added to the end
+  //     if (messages.length > 0 && messages[messages.length - 1].clientId === currentUserEmail) {
+  //       scrollElement.scrollTo({
+  //         top: scrollElement.scrollHeight,
+  //         behavior: 'smooth',
+  //       });
+  //     }
+  //   }
+  // }, [messages, loading]);
 
   // Handle channel selection
   useEffect(() => {
